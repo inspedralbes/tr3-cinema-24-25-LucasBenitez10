@@ -5,8 +5,10 @@ const cookieParser = require('cookie-parser');
 const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const dotenv = require('dotenv');
 
 const app = express();
+
 
 connectDB();
 
@@ -40,6 +42,10 @@ app.use(
 
   
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/movies', require('./routes/movieRoutes'));
+app.use('/api/rooms', require('./routes/roomRoutes'));
+app.use('/api/screenings', require('./routes/screeningRoutes'));
+app.use('/api/tickets', require('./routes/ticketRoutes'));
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
