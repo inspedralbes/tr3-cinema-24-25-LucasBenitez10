@@ -1,13 +1,12 @@
 
 export const fetchMovies = async () => {
-  const response = await fetch(process.env.NEXT_PUBLIC_API_URL, {
+  const response = await fetch(`http://localhost:4000/api/movies`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
     }
   });
-  console.log(response);
+  console.log("Respuestas des tmdb.js: " + response);
 
   if(response){
     return response.json();

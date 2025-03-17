@@ -2,8 +2,8 @@ const https = require('https');
 const Movie = require('../models/Movie');
 const Genre = require('../models/Genre'); // Necesitarás crear este modelo
 
-TMDB_BASE_URL='api.themoviedb.org'
-TMDB_API_KEY='eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYWY2NjI1OTA0YWJlNDUxOTNiMWJlNjg4YmVhMjZjNSIsIm5iZiI6MTc0MTc4MTM1Ni41MTAwMDAyLCJzdWIiOiI2N2QxNzk2Yzc3NjFhM2E2OGY2MGNkNjgiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.O0jokKFFq1exNyArSPCVl1xulj7wUalvczdMows7emc'
+TMDB_BASE_URL = 'api.themoviedb.org'
+TMDB_API_KEY = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYWY2NjI1OTA0YWJlNDUxOTNiMWJlNjg4YmVhMjZjNSIsIm5iZiI6MTc0MTc4MTM1Ni41MTAwMDAyLCJzdWIiOiI2N2QxNzk2Yzc3NjFhM2E2OGY2MGNkNjgiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.O0jokKFFq1exNyArSPCVl1xulj7wUalvczdMows7emc'
 
 // Configuración de imágenes de TMDB
 let imageConfig = {
@@ -47,17 +47,17 @@ const makeRequest = (path, params = {}, retryCount = 0) => {
       if (res.statusCode === 429 && retryCount < 5) {
         const retryAfter = parseInt(res.headers['retry-after'] || '1');
         console.log(`Rate limit exceeded. Retrying after ${retryAfter} seconds...`);
-        
+
         // Esperar y reintentar
         setTimeout(() => {
           makeRequest(path, params, retryCount + 1)
             .then(resolve)
             .catch(reject);
         }, retryAfter * 1000);
-        
+
         return;
       }
-      
+
       // Manejar otros errores HTTP
       if (res.statusCode >= 400) {
         reject(new Error(`Error HTTP ${res.statusCode} en solicitud a TMDB`));
@@ -102,12 +102,12 @@ const makeRequest = (path, params = {}, retryCount = 0) => {
 const fetchImageConfiguration = async () => {
   try {
     const data = await makeRequest('/configuration');
-    
+
     if (data.images) {
       imageConfig = data.images;
       console.log('Configuración de imágenes de TMDB actualizada');
     }
-    
+
     return imageConfig;
   } catch (error) {
     console.error('Error al obtener configuración de imágenes TMDB:', error);
@@ -125,25 +125,25 @@ const fetchAllPopularMovies = async (maxPages = 5) => {
     let allMovies = [];
     let page = 1;
     let totalPages = 1;
-    
+
     do {
       // Añadir pequeño retardo para evitar exceder límites de tasa
       if (page > 1) {
         await new Promise(resolve => setTimeout(resolve, 250));
       }
-      
+
       const data = await makeRequest('/movie/popular', {
         language: 'es-ES',
         page: page
       });
-      
+
       allMovies = [...allMovies, ...data.results];
       totalPages = data.total_pages;
       page++;
-      
-      console.log(`Obtenida página ${page-1} de ${totalPages} de películas populares`);
+
+      console.log(`Obtenida página ${page - 1} de ${totalPages} de películas populares`);
     } while (page <= totalPages && page <= maxPages);
-    
+
     return allMovies;
   } catch (error) {
     console.error('Error al obtener películas populares de TMDB:', error);
@@ -161,7 +161,7 @@ const fetchPopularMovies = async () => {
       language: 'es-ES',
       page: 1
     });
-    
+
     return data.results;
   } catch (error) {
     console.error('Error al obtener películas populares de TMDB:', error);
@@ -180,7 +180,7 @@ const fetchMovieDetails = async (tmdbId) => {
       language: 'es-ES',
       append_to_response: 'credits,videos'  // Obtener información adicional
     });
-    
+
     return data;
   } catch (error) {
     console.error(`Error al obtener detalles para la película ${tmdbId}:`, error);
@@ -197,9 +197,9 @@ const syncGenres = async () => {
     const data = await makeRequest('/genre/movie/list', {
       language: 'es-ES'
     });
-    
+
     const genres = data.genres;
-    
+
     // Actualizar géneros en base de datos
     for (const genre of genres) {
       await Genre.findOneAndUpdate(
@@ -208,7 +208,7 @@ const syncGenres = async () => {
         { upsert: true, new: true }
       );
     }
-    
+
     return genres;
   } catch (error) {
     console.error('Error al sincronizar géneros:', error);
@@ -225,21 +225,21 @@ const syncGenres = async () => {
  */
 const getImageUrl = (path, type = 'poster', size = 'w500') => {
   if (!path) return null;
-  
-  const sizes = type === 'backdrop' ? 
-    imageConfig.backdrop_sizes : 
+
+  const sizes = type === 'backdrop' ?
+    imageConfig.backdrop_sizes :
     imageConfig.poster_sizes;
-    
+
   // Usar el tamaño especificado o el más cercano disponible
   if (!sizes.includes(size)) {
     size = sizes[Math.floor(sizes.length / 2)]; // Tamaño medio como fallback
   }
-  
+
   return `${imageConfig.secure_base_url}${size}${path}`;
 };
 
 /**
- * Sincroniza películas de TMDB a la base de datos local
+ * Sincroniza películas de TMDB a la base de datos local, incluyendo trailers
  * @param {Number} maxPages - Número máximo de páginas a sincronizar
  * @returns {Promise<Object>} Resultado de la sincronización
  */
@@ -247,50 +247,61 @@ const syncMoviesToDatabase = async (maxPages = 5) => {
   try {
     // Actualizar configuración de imágenes
     await fetchImageConfiguration();
-    
+
     // Sincronizar géneros
     await syncGenres();
-    
+
     // Obtener películas (paginadas)
     const popularMovies = await fetchAllPopularMovies(maxPages);
     let updated = 0;
     let created = 0;
     let errors = 0;
-    
+    let trailersAdded = 0;
+
     for (const movieData of popularMovies) {
       try {
         // Verificar si la película ya existe en nuestra BD
         const existingMovie = await Movie.findOne({ tmdbId: movieData.id });
-        
+
+        // Añadir pequeño retardo para no exceder límites de tasa
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Obtener detalles adicionales (como duración)
+        const details = await fetchMovieDetails(movieData.id);
+
+        // Obtener trailer
+        const trailer = await fetchMovieTrailer(movieData.id);
+        console.log(`Obtenido trailer para película ${movieData.id}:`, trailer);
+
         if (existingMovie) {
           // Actualizar película existente
+          const updateData = {
+            title: movieData.title,
+            original_title: movieData.original_title,
+            overview: movieData.overview,
+            poster_path: movieData.poster_path,
+            backdrop_path: movieData.backdrop_path,
+            popularity: movieData.popularity,
+            vote_average: movieData.vote_average,
+            vote_count: movieData.vote_count,
+            release_date: movieData.release_date,
+            genre_ids: movieData.genre_ids,
+            poster_url: getImageUrl(movieData.poster_path, 'poster'),
+            backdrop_url: getImageUrl(movieData.backdrop_path, 'backdrop')
+          };
+
+          // Añadir trailer si existe y no estaba previamente
+          if (trailer && !existingMovie.trailer) {
+            updateData.trailer = trailer;
+            trailersAdded++;
+          }
+
           await Movie.updateOne(
             { tmdbId: movieData.id },
-            {
-              $set: {
-                title: movieData.title,
-                original_title: movieData.original_title,
-                overview: movieData.overview,
-                poster_path: movieData.poster_path,
-                backdrop_path: movieData.backdrop_path,
-                popularity: movieData.popularity,
-                vote_average: movieData.vote_average,
-                vote_count: movieData.vote_count,
-                release_date: movieData.release_date,
-                genre_ids: movieData.genre_ids,
-                poster_url: getImageUrl(movieData.poster_path, 'poster'),
-                backdrop_url: getImageUrl(movieData.backdrop_path, 'backdrop')
-              }
-            }
+            { $set: updateData }
           );
           updated++;
         } else {
-          // Añadir pequeño retardo para no exceder límites de tasa
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Obtener detalles adicionales (como duración)
-          const details = await fetchMovieDetails(movieData.id);
-          
           // Crear nueva película
           await Movie.create({
             tmdbId: movieData.id,
@@ -316,22 +327,30 @@ const syncMoviesToDatabase = async (maxPages = 5) => {
             status: details.status,
             tagline: details.tagline,
             budget: details.budget,
-            revenue: details.revenue
+            revenue: details.revenue,
+            // Añadir información del trailer
+            trailer: trailer
           });
           created++;
+
+          // Incrementar contador de trailers si se encontró
+          if (trailer) {
+            trailersAdded++;
+          }
         }
       } catch (movieError) {
         console.error(`Error procesando película ${movieData.id}:`, movieError);
         errors++;
       }
     }
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       total: popularMovies.length,
       created,
       updated,
-      errors
+      errors,
+      trailersAdded
     };
   } catch (error) {
     console.error('Error al sincronizar películas con la base de datos:', error);
@@ -339,11 +358,136 @@ const syncMoviesToDatabase = async (maxPages = 5) => {
   }
 };
 
+/**
+ * Obtiene el trailer oficial de una película
+ * @param {Number} tmdbId - ID de la película en TMDB
+ * @returns {Promise<Object|null>} Información del trailer o null si no se encuentra
+ */
+const fetchMovieTrailer = async (tmdbId) => {
+  try {
+    const data = await makeRequest(`/movie/${tmdbId}/videos`, {
+      language: 'es-ES'
+    });
+
+    // Buscar trailer oficial en español
+    let trailer = data.results.find(video =>
+      video.type === 'Trailer' &&
+      video.site === 'YouTube' &&
+      video.official === true &&
+      video.iso_639_1 === 'es'
+    );
+
+    // Si no hay trailer en español, buscar en inglés
+    if (!trailer) {
+      trailer = data.results.find(video =>
+        video.type === 'Trailer' &&
+        video.site === 'YouTube' &&
+        video.official === true &&
+        video.iso_639_1 === 'en'
+      );
+    }
+
+    // Si no hay trailer oficial, tomar el primer trailer disponible
+    if (!trailer) {
+      trailer = data.results.find(video =>
+        video.type === 'Trailer' &&
+        video.site === 'YouTube'
+      );
+    }
+
+    // Construir URL de YouTube si se encuentra un trailer
+    if (trailer) {
+      return {
+        key: trailer.key,
+        name: trailer.name,
+        official: trailer.official,
+        site: trailer.site,
+        youtubeUrl: `https://www.youtube.com/watch?v=${trailer.key}`
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error al obtener trailer para la película ${tmdbId}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Actualiza el modelo de Movie para incluir información del trailer
+ * @param {Number} tmdbId - ID de la película en TMDB
+ * @returns {Promise<Object>} Película actualizada con información de trailer
+ */
+const updateMovieWithTrailer = async (tmdbId) => {
+  try {
+    const trailer = await fetchMovieTrailer(tmdbId);
+
+    if (trailer) {
+      return await Movie.findOneAndUpdate(
+        { tmdbId: tmdbId },
+        {
+          $set: {
+            trailer: trailer
+          }
+        },
+        { new: true }
+      );
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Error al actualizar trailer para la película ${tmdbId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Modifica syncMoviesToDatabase para incluir trailers
+ * @param {Number} maxPages - Número máximo de páginas a sincronizar
+ * @returns {Promise<Object>} Resultado de la sincronización
+ */
+const syncMoviesToDatabaseWithTrailers = async (maxPages = 5) => {
+  try {
+    // Llamar a la función original de sincronización
+    const syncResult = await syncMoviesToDatabase(maxPages);
+
+    // Añadir proceso de obtención de trailers
+    const moviesWithoutTrailers = await Movie.find({
+      trailer: { $exists: false }
+    });
+
+    let trailersAdded = 0;
+
+    for (const movie of moviesWithoutTrailers) {
+      try {
+        const updatedMovie = await updateMovieWithTrailer(movie.tmdbId);
+        if (updatedMovie) {
+          trailersAdded++;
+        }
+      } catch (movieError) {
+        console.error(`Error añadiendo trailer para película ${movie.tmdbId}:`, movieError);
+      }
+    }
+
+    return {
+      ...syncResult,
+      trailersAdded
+    };
+  } catch (error) {
+    console.error('Error al sincronizar películas con trailers:', error);
+    throw error;
+  }
+};
+
+
 module.exports = {
   fetchPopularMovies,
   fetchAllPopularMovies,
   fetchMovieDetails,
   syncMoviesToDatabase,
   syncGenres,
-  getImageUrl
+  getImageUrl,
+  fetchMovieTrailer,
+  updateMovieWithTrailer,
+  syncMoviesToDatabaseWithTrailers
 };

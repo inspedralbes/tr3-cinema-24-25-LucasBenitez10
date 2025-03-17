@@ -1,7 +1,10 @@
-import { register, login, logout} from "@/services/authService"
+import { authService }from "@/services/authService"
+// import useUserStore from "@/store/userStore"
 
 
 export default function useAuth() {
+    // const { setUser } = useUserStore()
+    const { login, register, logout } = authService
 
     const handleLogin = async (email, password) => {
         const response = await login({ email, password })
@@ -12,18 +15,20 @@ export default function useAuth() {
         }
     }
 
-    const handleRegister = async (email, password, confirmPassword) => {
+    const handleRegister = async (userData) => {
+        const { password, confirmPassword } = userData;
+        
         if (password !== confirmPassword) {
-            throw new Error("Las contraseñas no coinciden")
+            throw new Error("Las contraseñas no coinciden");
         }
-        if (password.length < 6) {
-            throw new Error("La contraseña debe tener al menos 6 caracteres")
-        }
-        const response = await register({ email, password})
+        
+        const response = await register(userData);
+        
         if (response.ok) {
-            return response.data
+            return response.data;
+            
         } else {
-            throw new Error(response.message)
+            throw new Error(response.message);
         }
     }
 

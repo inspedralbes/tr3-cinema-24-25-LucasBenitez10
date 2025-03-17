@@ -10,10 +10,10 @@ function Peliculas() {
 
     const getMovies = async () => {
         const moviesData = await fetchMovies();
-        setMovies(moviesData.results);
-        console.log(moviesData);
+        setMovies(moviesData.movies);
+        console.log("respuestas del fetch: ", movies);
     }
-
+    
     useEffect(() => {
         getMovies();
     }, []);
@@ -22,7 +22,7 @@ function Peliculas() {
         <div>
             <h1 className='text-center text-black'>Cartelera</h1>
             <div className="flex flex-row flex-wrap">
-                {movies.length > 0 && movies.map((movie) => (
+                {movies.lenght > 0 && movies.map((movie) => (
                     <CardMovie
                         key={movie.id}
                         movieData={movie}

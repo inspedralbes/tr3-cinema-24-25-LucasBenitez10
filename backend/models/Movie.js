@@ -17,7 +17,8 @@ const movieSchema = new mongoose.Schema({
     vote_average: { type: Number, min: 0, max: 10, default: 0 },
     vote_count: { type: Number, default: 0 },
     duration: { type: Number, default: 120 }, 
-    active: { type: Boolean, default: true } 
+    active: { type: Boolean, default: true } ,
+    trailer: { key: String, name: String, official: Boolean, site: String, youtubeUrl: String }
 }, {
     timestamps: true
 });

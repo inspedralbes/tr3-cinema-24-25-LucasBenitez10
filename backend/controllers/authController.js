@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 
 const registerUser = async (req, res) => {
   try {
-    const { name, lastname, age, email, password } = req.body;
+    const { name, lastname, age, email, password, role } = req.body;
     
     if (!name || !lastname || !age || !email || !password) {
       return res.status(400).json({ message: 'Todos los campos son requeridos' });
@@ -21,7 +21,8 @@ const registerUser = async (req, res) => {
       lastname,
       age,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      role: role,
     });
     
     const savedUser = await newUser.save();
@@ -32,7 +33,8 @@ const registerUser = async (req, res) => {
       _id: savedUser._id,
       name: savedUser.name,
       lastname: savedUser.lastname,
-      email: savedUser.email
+      email: savedUser.email,
+      role: savedUser.role
     };
     
     res.status(201).json({
