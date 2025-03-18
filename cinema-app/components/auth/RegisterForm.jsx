@@ -13,7 +13,7 @@ export default function RegisterForm() {
     const [age, setAge] = useState('');
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Prevent default form submission
+        e.preventDefault();
         
         const userData = {
             name,

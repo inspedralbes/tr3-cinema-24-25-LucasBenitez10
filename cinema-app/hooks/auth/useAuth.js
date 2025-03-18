@@ -1,15 +1,25 @@
 import { authService }from "@/services/authService"
+import { useRouter } from 'next/navigation';
+
 // import useUserStore from "@/store/userStore"
 
 
 export default function useAuth() {
     // const { setUser } = useUserStore()
     const { login, register, logout } = authService
+    const router = useRouter()
 
-    const handleLogin = async (email, password) => {
+    const handleLogin = async (userData) => {
+        const { email, password } = userData
         const response = await login({ email, password })
-        if (response.ok) {
-            return response.data
+        if (response) {
+            const { role } = response.user
+            if (role === 'admin') {
+                router.push('/administracion')
+            } else if (role === 'customer') {
+                router.push('/peliculas')
+            }
+            return response.user
         } else {
             throw new Error(response.message)
         }
@@ -24,7 +34,7 @@ export default function useAuth() {
         
         const response = await register(userData);
         
-        if (response.ok) {
+        if (response) {
             return response.data;
             
         } else {

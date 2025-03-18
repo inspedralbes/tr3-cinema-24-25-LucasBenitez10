@@ -67,13 +67,14 @@ const loginUser = async (req, res) => {
 
     req.session.userId = user._id;
 
-    res.json({
+    res.status(200).json({
       message: 'Login exitoso',
       user: {
         _id: user._id,
         name: user.name,
         lastname: user.lastname,
-        email: user.email
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {

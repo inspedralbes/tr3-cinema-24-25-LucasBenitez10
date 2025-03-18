@@ -18,6 +18,7 @@ export const authService = {
             body: JSON.stringify(userData)
         })
         return response.json()
+        
     },
 
     async logout() {
