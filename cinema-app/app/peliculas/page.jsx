@@ -6,20 +6,7 @@ import { useMovieStore } from '@/store/moviesStore';
 import { fetchMovies } from '@/lib/tmdb';
 
 function Peliculas() {
-    const { movies, setMovies } = useMovieStore();
-
-    const getMovies = async () => {
-        const moviesData = await fetchMovies();
-        setMovies(moviesData.movies);
-        console.log("respuestas del fetch: ", moviesData.movies);
-
-    }
-
-    console.log()
-    
-    useEffect(() => {
-        getMovies();
-    }, []);
+    const { movies } = useMovieStore();
 
     return (
         <div>
