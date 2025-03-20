@@ -1,18 +1,13 @@
-import { useMovieStore } from "@/store/moviesStore";
 
 export const fetchMovies = async () => {
-  const { setMovies } = useMovieStore()
-  const response = await fetch(`http://localhost:4000/api/movies`, {
+  const response = await fetch(process.env.NEXT_PUBLIC_API_URL, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
     }
   });
-  console.log("Respuestas des tmdb.js: " + response);
-
-  setMovies(response.movies)
-
-
+  console.log(response);
 
   if(response){
     return response.json();

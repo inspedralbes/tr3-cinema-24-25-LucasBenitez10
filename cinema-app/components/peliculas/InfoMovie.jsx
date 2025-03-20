@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 export default function InfoMovie({title, review, lenguage, relase, image, onClose}) {
     const router = useRouter();
 
-    function handleBuyTickets() {
+    function handleBuyTickets() {   
         router.push('/seats');
     }
 

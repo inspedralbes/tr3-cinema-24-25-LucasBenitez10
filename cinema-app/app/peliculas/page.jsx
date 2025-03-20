@@ -1,31 +1,39 @@
 'use client';
-import * as React from 'react';
 import CardMovie from '@/components/peliculas/CardMovie';
 import { useState, useEffect } from 'react';
-import { useMovieStore } from '@/store/moviesStore';
-import { fetchMovies } from '@/lib/tmdb';
+import { getScreenings } from '@/services/screeningService'
+
 
 function Peliculas() {
-    const { movies } = useMovieStore();
+    const [screenings, setScreenings] = useState([])
 
+    const getScreeningsData = async () =>  {
+        const data = await getScreenings()
+        setScreenings(data)
+    }
+
+    useEffect(() => {
+        getScreeningsData()
+    }, [])
+ 
     return (
         <div>
             <h1 className='text-center text-black'>Cartelera</h1>
             <div className="flex flex-row flex-wrap">
-                {movies.length && movies.map((movie) => (
+                {screenings.length > 0 && screenings.map((screening) => (
                     <CardMovie
-                        key={movie._id}
-                        movieData={movie}
-                        title={movie.title || movie.name}
-                        review={movie.overview}
-                        lenguage={movie.original_language}
-                        relase={movie.release_date}
-                        image={movie.poster_path}
+                        key={screening._id}
+                        movieData={screening}
+                        title={screening.movie.title}
+                        review={screening.movie.overview}
+                        lenguage={screening.language}
+                        relase={screening.date}
+                        image={screening.movie.poster_path}
+                        status={screening.status}
                     />
                 ))}
             </div>
         </div>
     )
 }
-
 export default Peliculas;
