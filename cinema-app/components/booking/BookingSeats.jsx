@@ -13,13 +13,59 @@ export default function BookingSeats() {
     occupiedSeats: []
   });
   const {assignSeats, nextStep } = useBookingStore();
-  const router = useRouter()
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-
-  const handleBuyTickets  = () => {
-    assignSeats(selectedSeats)
-    nextStep()
+  const handleBuyTickets = () => {
+    assignSeats(selectedSeats);
+    nextStep();
   }
+  
+  // Cargar los asientos ocupados desde la API
+  useEffect(() => {
+    const fetchOccupiedSeats = async () => {
+      if (movieSelected && movieSelected._id) {
+        try {
+          setIsLoading(true);
+          setError(null);
+          
+          console.log(`Obteniendo estado de asientos para proyección: ${movieSelected._id}`);
+          
+          const response = await fetch(`http://localhost:4000/api/seat-status/${movieSelected._id}`);
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Error de API:', errorData);
+            throw new Error(errorData.message || 'Error al obtener los asientos ocupados');
+          }
+          
+          const data = await response.json();
+          console.log('Datos de asientos recibidos:', data);
+          
+          // Filtrar solo los asientos con status "occupied"
+          const occupiedSeatsIds = data
+            .filter(seat => seat.status === 'occupied')
+            .map(seat => seat.seatId);
+          
+          console.log('Asientos ocupados:', occupiedSeatsIds);
+          
+          // Actualizar el estado con los asientos ocupados
+          setSeatLayout(prevLayout => ({
+            ...prevLayout,
+            occupiedSeats: occupiedSeatsIds
+          }));
+        } catch (error) {
+          console.error('Error al cargar asientos ocupados:', error);
+          setError('No se pudieron cargar los asientos ocupados. Los asientos mostrados podrían no estar actualizados.');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchOccupiedSeats();
+  }, [movieSelected]);
   
   // Generar la distribución de asientos basado en availableSeats
   useEffect(() => {
@@ -50,11 +96,11 @@ export default function BookingSeats() {
         String.fromCharCode(65 + i)
       );
       
-      setSeatLayout({
+      setSeatLayout(prevLayout => ({
         rows: rowLetters,
         seatsPerRow: seatsPerRow,
-        occupiedSeats: []
-      });
+        occupiedSeats: prevLayout.occupiedSeats // Mantener los asientos ocupados si ya fueron cargados
+      }));
     } 
     // Si availableSeats es un objeto con una estructura definida
     else if (typeof totalSeats === 'object' && !Array.isArray(totalSeats)) {
@@ -63,11 +109,13 @@ export default function BookingSeats() {
           String.fromCharCode(65 + i)
         );
         
-        setSeatLayout({
+        setSeatLayout(prevLayout => ({
           rows: rowLetters,
           seatsPerRow: totalSeats.seatsPerRow,
-          occupiedSeats: totalSeats.occupied || []
-        });
+          occupiedSeats: prevLayout.occupiedSeats.length > 0 
+            ? prevLayout.occupiedSeats 
+            : totalSeats.occupied || []
+        }));
       }
     }
     // Si availableSeats es un array de asientos disponibles
@@ -80,31 +128,33 @@ export default function BookingSeats() {
       // Encontrar el número más alto de asiento por fila
       const maxSeatNum = Math.max(...seatIds.map(id => parseInt(id.substring(1))));
       
-      setSeatLayout({
+      setSeatLayout(prevLayout => ({
         rows: rowLetters,
         seatsPerRow: maxSeatNum,
-        occupiedSeats: []
-      });
+        occupiedSeats: prevLayout.occupiedSeats // Mantener los asientos ocupados
+      }));
     }
     // Fallback a una configuración por defecto si no podemos interpretar availableSeats
     else {
       console.warn("No se pudo determinar la estructura de asientos desde availableSeats");
-      setSeatLayout({
+      setSeatLayout(prevLayout => ({
         rows: ['A', 'B', 'C', 'D'],
         seatsPerRow: 10,
-        occupiedSeats: []
-      });
+        occupiedSeats: prevLayout.occupiedSeats // Mantener los asientos ocupados
+      }));
     }
   };
   
   // Verificar si un asiento está ocupado
   const isOccupied = (seatId) => {
-    // Si tenemos una lista de asientos ocupados específica
-    if (seatLayout.occupiedSeats.length > 0) {
-      return seatLayout.occupiedSeats.includes(seatId);
+    // Primero verificar en la lista de asientos ocupados de SeatStatus
+    if (seatLayout.occupiedSeats && seatLayout.occupiedSeats.length > 0) {
+      if (seatLayout.occupiedSeats.includes(seatId)) {
+        return true;
+      }
     }
     
-    // Si movieSelected.availableSeats es un array de asientos disponibles
+    // Si tenemos una estructura específica de asientos disponibles en movieSelected
     if (Array.isArray(movieSelected?.availableSeats)) {
       return !movieSelected.availableSeats.includes(seatId);
     }
@@ -164,6 +214,21 @@ export default function BookingSeats() {
           <div className="w-full bg-gray-800 h-10 rounded mb-16 flex items-center justify-center text-sm text-gray-400">
             PANTALLA
           </div>
+          
+          {/* Mensajes de error */}
+          {error && (
+            <div className="mb-8 p-4 bg-red-900/50 border border-red-800 rounded-md text-center text-sm">
+              <p>{error}</p>
+            </div>
+          )}
+          
+          {/* Indicador de carga */}
+          {isLoading && (
+            <div className="text-center mb-8">
+              <div className="inline-block animate-spin h-6 w-6 border-t-2 border-red-500 rounded-full"></div>
+              <p className="mt-2 text-gray-400">Cargando estado de asientos...</p>
+            </div>
+          )}
           
           {/* Asientos */}
           <div className="mb-16 overflow-x-auto">
@@ -236,7 +301,7 @@ export default function BookingSeats() {
             <button 
               className={`w-full mt-6 py-3 rounded font-medium transition-colors duration-200 ${selectedSeats.length > 0 ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
               disabled={selectedSeats.length === 0}
-              onClick={ handleBuyTickets }
+              onClick={handleBuyTickets}
             >
               Confirmar selección
             </button>
@@ -249,4 +314,4 @@ export default function BookingSeats() {
       )}
     </div>
   );
-};
+}

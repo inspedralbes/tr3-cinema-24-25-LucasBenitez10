@@ -54,6 +54,9 @@ app.use('/api/rooms', require('./routes/roomRoutes'));
 app.use('/api/screenings', require('./routes/screeningRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/seat-status', require('./routes/seatStatusRoutes'));
+
+
 
 
 
