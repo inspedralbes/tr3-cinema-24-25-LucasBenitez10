@@ -2,16 +2,18 @@ import * as React from 'react';
 import { useState } from 'react';
 import InfoMovie from './InfoMovie';
 import { useMovieStore } from '@/store/moviesStore';
+import { useBookingStore } from '@/store/bookingStore';
 
 export default function CardMovie({ movieData, title, review, lenguage, relase, image, status }) {
     const assignMovie = useMovieStore((state) => state.assignMovie);
     const [showInfo, setShowInfo] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const { setBookingStep } = useBookingStore()
 
     function handleViewInfo() {
         setShowInfo(true);
         assignMovie(movieData); 
-
+        setBookingStep('seat-selection');
         console.log(movieData)
     }    
 
@@ -28,7 +30,7 @@ export default function CardMovie({ movieData, title, review, lenguage, relase, 
     return (
         <div className="w-64 m-3">
             <div 
-                className={`relative rounded-md overflow-hidden bg-white shadow-md transition-all duration-300 ${isHovered ? 'shadow-lg' : ''} ${isCancelled ? 'ring-1 ring-red-300' : ''}`}
+                className={`relative rounded-md overflow-hidden bg-gray-900 border border-gray-800 shadow-md transition-all duration-300 ${isHovered ? 'shadow-lg shadow-gray-900/50' : ''} ${isCancelled ? 'ring-1 ring-red-800' : ''}`}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
@@ -42,7 +44,7 @@ export default function CardMovie({ movieData, title, review, lenguage, relase, 
                     
                     {/* Overlay sutil */}
                     <div 
-                        className={`absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-50`}
+                        className={`absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70`}
                     ></div>
                     
                     {/* Badges minimalistas */}
@@ -57,16 +59,16 @@ export default function CardMovie({ movieData, title, review, lenguage, relase, 
                     
                     {/* CARTEL DE FUNCIÓN CANCELADA - Versión minimalista */}
                     {isCancelled && (
-                        <div className="absolute bottom-0 inset-x-0 bg-red-500 py-1 flex justify-center items-center">
+                        <div className="absolute bottom-0 inset-x-0 bg-red-600 py-1 flex justify-center items-center">
                             <p className="text-white text-xs font-medium tracking-wide">FUNCIÓN CANCELADA</p>
                         </div>
                     )}
                 </div>
                 
                 {/* Información de la película */}
-                <div className="p-3 bg-white">
-                    <h2 className="font-medium text-gray-900 text-base mb-1 truncate">{title}</h2>
-                    <p className="text-gray-500 text-xs line-clamp-2 mb-3 h-8">{review}</p>
+                <div className="p-3 bg-gray-900">
+                    <h2 className="font-medium text-white text-base mb-1 truncate">{title}</h2>
+                    <p className="text-gray-400 text-xs line-clamp-2 mb-3 h-8">{review}</p>
                     
                     {/* Botón minimalista */}
                     <button 
@@ -74,8 +76,8 @@ export default function CardMovie({ movieData, title, review, lenguage, relase, 
                         disabled={isCancelled}
                         className={`w-full py-2 text-sm font-medium rounded-sm transition-colors ${
                             isCancelled 
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                                : 'bg-black text-white hover:bg-gray-800'
+                                ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
+                                : 'bg-red-600 text-white hover:bg-red-700'
                         }`}
                     >
                         {isCancelled ? 'No disponible' : 'Comprar entradas'}

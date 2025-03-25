@@ -1,11 +1,10 @@
 import { authService }from "@/services/authService"
 import { useRouter } from 'next/navigation';
-
-// import useUserStore from "@/store/userStore"
+import { useUserStore } from "@/store/userStore"
 
 
 export default function useAuth() {
-    // const { setUser } = useUserStore()
+    const { clearUser } = useUserStore()
     const { login, register, logout } = authService
     const router = useRouter()
 
@@ -43,11 +42,17 @@ export default function useAuth() {
     }
 
     const handleLogout = async () => {
-        const response = await logout()
-        if (response.ok) {
-            return response.data
-        } else {
-            throw new Error(response.message)
+        try {
+            const response = await logout();
+
+            if (response && response.message) {
+                router.push('/login');
+                clearUser();
+                return true;
+            }
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+            throw error;
         }
     }
 

@@ -1,4 +1,4 @@
-'use client'; // Important for client-side components in Next.js
+'use client';
 
 import { useState } from 'react';
 import useAuth from '@/hooks/auth/useAuth';
@@ -35,84 +35,82 @@ export default function RegisterForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <fieldset className='fieldset-form flex items-center flex-col gap-4'>
-                <legend>Registro</legend>
-                
-                <div className="w-full">
-                    <label htmlFor="name" className="block mb-2">Nombre</label>
+        <div className="bg-gray-900 p-6 rounded border border-gray-800 w-full">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div>
+                    <label htmlFor="name" className="block text-gray-400 mb-2">Nombre</label>
                     <input 
                         type="text" 
                         id="name"
                         name="name" 
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500 transition-colors duration-200"
                         required
                     />
                 </div>
                 
-                <div className="w-full">
-                    <label htmlFor="lastname" className="block mb-2">Apellidos</label>
+                <div>
+                    <label htmlFor="lastname" className="block text-gray-400 mb-2">Apellidos</label>
                     <input 
                         type="text" 
                         id="lastname"
                         name="lastname" 
                         value={lastname}
                         onChange={(e) => setLastname(e.target.value)}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500 transition-colors duration-200"
                         required
                     />
                 </div>
                 
-                <div className="w-full">
-                    <label htmlFor="email" className="block mb-2">Correo electrónico</label>
+                <div>
+                    <label htmlFor="email" className="block text-gray-400 mb-2">Correo electrónico</label>
                     <input 
                         type="email" 
                         id="email"
                         name="email" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500 transition-colors duration-200"
                         required
                     />
                 </div>
                 
-                <div className="w-full">
-                    <label htmlFor="password" className="block mb-2">Contraseña</label>
+                <div>
+                    <label htmlFor="password" className="block text-gray-400 mb-2">Contraseña</label>
                     <input 
                         type="password" 
                         id="password"
                         name="password" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500 transition-colors duration-200"
                         required
                     />
                 </div>
                 
-                <div className="w-full">
-                    <label htmlFor="confirm-password" className="block mb-2">Confirmar contraseña</label>
+                <div>
+                    <label htmlFor="confirm-password" className="block text-gray-400 mb-2">Confirmar contraseña</label>
                     <input 
                         type="password" 
                         id="confirm-password"
                         name="confirm-password" 
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500 transition-colors duration-200"
                         required
                     />
                 </div>
                 
-                <div className="w-full">
-                    <label htmlFor="age" className="block mb-2">Edad</label>
+                <div>
+                    <label htmlFor="age" className="block text-gray-400 mb-2">Edad</label>
                     <input 
                         type="number" 
                         id="age"
                         name="age" 
                         value={age}
                         onChange={(e) => setAge(e.target.value)}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500 transition-colors duration-200"
                         required
                         min="0"
                         max="120"
@@ -121,11 +119,11 @@ export default function RegisterForm() {
                 
                 <button 
                     type="submit" 
-                    className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="w-full mt-2 py-3 rounded font-medium transition-colors duration-200 bg-red-600 hover:bg-red-700 text-white"
                 >
                     Registrarse
                 </button>
-            </fieldset>
-        </form>
+            </form>
+        </div>
     );
 }

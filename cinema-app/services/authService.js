@@ -24,7 +24,9 @@ export const authService = {
     async logout() {
         const response = await fetch(`${URL}/api/auth/logout`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include' 
+            
         })
         return response.json()
     }

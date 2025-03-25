@@ -20,20 +20,20 @@ const generateTicketCode = () => {
  */
 const purchaseTickets = async (ticketData) => {
   try {
-    const { screeningId, customerInfo, seats, ticketType } = ticketData;
-    
+    const { screeningId, customerInfo, seats, ticketType, paymentMethod } = ticketData;
+
     // Verificar que la función exista y tenga asientos disponibles
     const screening = await Screening.findById(screeningId);
     if (!screening) throw new Error('Función no encontrada');
-    
+
     if (screening.availableSeats < seats.length) {
       throw new Error('No hay suficientes asientos disponibles');
     }
-    
+
     if (screening.status !== 'scheduled') {
       throw new Error('No se pueden comprar boletos para esta función');
     }
-    
+
     // Determinar el precio basado en el tipo de boleto
     let price = screening.priceRegular;
     if (ticketType === 'vip') {
@@ -41,46 +41,44 @@ const purchaseTickets = async (ticketData) => {
     } else if (ticketType === 'student' || ticketType === 'senior') {
       price = screening.priceRegular * 0.8; // 20% de descuento
     }
-    
-    // Crear los boletos
-    const createdTickets = [];
-    
-    for (const seatNumber of seats) {
-      // Verificar si el asiento ya está ocupado
+
+    // En lugar de crear múltiples tickets, crear uno solo con todos los asientos
+
+    // Verificar si alguno de los asientos ya está ocupado
+    for (const seat of seats) {
+      const seatIdentifier = `${seat.row}${seat.number}`;
       const existingTicket = await Ticket.findOne({
         screening: screeningId,
-        seatNumber
+        'seats': { $elemMatch: { row: seat.row, number: seat.number } }
       });
-      
+
       if (existingTicket) {
-        throw new Error(`El asiento ${seatNumber} ya está ocupado`);
+        throw new Error(`El asiento ${seatIdentifier} ya está ocupado`);
       }
-      
-      // Generar código único para el boleto
-      const ticketCode = generateTicketCode();
-      
-      // Crear boleto
-      const ticket = await Ticket.create({
-        screening: screeningId,
-        customer: customerInfo,
-        seatNumber,
-        ticketType,
-        price,
-        paymentStatus: 'completed', // Asumiendo pago inmediato
-        paymentMethod: ticketData.paymentMethod || 'credit_card',
-        ticketCode
-      });
-      
-      createdTickets.push(ticket);
     }
-    
+
+    // Generar código único para el boleto
+    const ticketCode = generateTicketCode();
+
+    // Crear un solo ticket con todos los asientos
+    const ticket = await Ticket.create({
+      screening: screeningId,
+      customer: customerInfo,
+      seats: seats,
+      ticketType,
+      price: price * seats.length, // Multiplicar el precio por la cantidad de asientos
+      paymentStatus: 'completed',
+      paymentMethod: paymentMethod.type || 'credit_card',
+      ticketCode
+    });
+
     // Actualizar asientos disponibles
     await Screening.updateOne(
       { _id: screeningId },
       { $inc: { availableSeats: -seats.length } }
     );
-    
-    return createdTickets;
+
+    return [ticket]; // Devolver array con un solo ticket para mantener compatibilidad
   } catch (error) {
     console.error('Error al comprar tickets:', error);
     throw error;
@@ -102,7 +100,7 @@ const getTicketsByScreening = async (screeningId) => {
           select: 'title name'
         }
       });
-    
+
     return tickets;
   } catch (error) {
     console.error('Error al obtener tickets por función:', error);
@@ -126,7 +124,7 @@ const getTicketsByCustomer = async (email) => {
         }
       })
       .sort({ createdAt: -1 });
-    
+
     return tickets;
   } catch (error) {
     console.error('Error al obtener tickets por cliente:', error);
@@ -149,11 +147,11 @@ const verifyTicket = async (ticketCode) => {
           select: 'title name'
         }
       });
-    
+
     if (!ticket) {
       throw new Error('Ticket no encontrado o inválido');
     }
-    
+
     return ticket;
   } catch (error) {
     console.error('Error al verificar ticket:', error);
@@ -169,45 +167,45 @@ const verifyTicket = async (ticketCode) => {
 const cancelTicket = async (ticketId) => {
   try {
     const ticket = await Ticket.findById(ticketId);
-    
+
     if (!ticket) {
       throw new Error('Ticket no encontrado');
     }
-    
+
     if (ticket.paymentStatus === 'refunded') {
       throw new Error('Este ticket ya ha sido cancelado');
     }
-    
+
     // Obtener la función para verificar si aún es posible cancelar
     const screening = await Screening.findById(ticket.screening);
-    
+
     if (!screening) {
       throw new Error('Función no encontrada');
     }
-    
+
     // Verificar si la función ya ocurrió o está por comenzar
     const now = new Date();
     const screeningDate = new Date(screening.date);
     const [hours, minutes] = screening.startTime.split(':').map(Number);
     screeningDate.setHours(hours, minutes, 0);
-    
+
     // Si faltan menos de 2 horas para la función, no permitir cancelación
     const hoursUntilScreening = (screeningDate - now) / (1000 * 60 * 60);
-    
+
     if (hoursUntilScreening < 2) {
       throw new Error('No se puede cancelar el ticket cuando faltan menos de 2 horas para la función');
     }
-    
+
     // Actualizar el ticket
     ticket.paymentStatus = 'refunded';
     await ticket.save();
-    
+
     // Actualizar disponibilidad de asientos
     await Screening.updateOne(
       { _id: screening._id },
       { $inc: { availableSeats: 1 } }
     );
-    
+
     return ticket;
   } catch (error) {
     console.error('Error al cancelar ticket:', error);
