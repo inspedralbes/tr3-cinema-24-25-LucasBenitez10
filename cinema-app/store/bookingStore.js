@@ -1,4 +1,3 @@
-// bookingStore.js
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -19,6 +18,9 @@ export const useBookingStore = create(
       // Paso actual del proceso de compra
       bookingStep: 'seat-selection',
       
+      // Nuevo: almacenar información de tipos de tickets
+      ticketTypes: [],
+      
       // NUEVA FUNCIÓN: Obtener cantidad de asientos seleccionados
       getSelectedSeatsCount: () => {
         return get().selectedSeats.length;
@@ -26,8 +28,18 @@ export const useBookingStore = create(
 
       // NUEVA FUNCIÓN: Obtener los tipos de asientos y sus cantidades
       getSelectedSeatsByType: () => {
-        const { selectedSeats } = get();
+        const { selectedSeats, ticketTypes } = get();
         
+        // Si hay tipos de tickets definidos, usar esos datos
+        if (ticketTypes && ticketTypes.length > 0) {
+          const countByType = {};
+          ticketTypes.forEach(type => {
+            countByType[type.code] = type.quantity;
+          });
+          return countByType;
+        }
+        
+        // Fallback al comportamiento original
         // Inicializar contador para cada tipo de asiento
         const countByType = {
           normal: 0,
@@ -62,6 +74,11 @@ export const useBookingStore = create(
       // Asignar precio total
       assignTotal: (total) => {
         set({ totalPrice: total });
+      },
+      
+      // NUEVA FUNCIÓN: Asignar tipos de tickets seleccionados
+      assignTicketTypes: (types) => {
+        set({ ticketTypes: types });
       },
       
       // Seleccionar un asiento individual
@@ -109,7 +126,14 @@ export const useBookingStore = create(
         const currentIndex = steps.indexOf(bookingStep);
         
         if (currentIndex < steps.length - 1) {
-          set({ bookingStep: steps[currentIndex + 1] });
+          const nextStep = steps[currentIndex + 1];
+          set({ bookingStep: nextStep });
+          
+          // Si avanzamos a la confirmación, detener el timeout
+          if (nextStep === 'confirmation') {
+            set({ reservationStartTime: null });
+          }
+          
           return true;
         }
         
@@ -149,6 +173,12 @@ export const useBookingStore = create(
       setBookingStep: (step) => {
         if (['seat-selection', 'user-data', 'type-seat', 'payment', 'confirmation'].includes(step)) {
           set({ bookingStep: step });
+          
+          // Si avanzamos a la confirmación, detener el timeout
+          if (step === 'confirmation') {
+            set({ reservationStartTime: null });
+          }
+          
           return true;
         }
         return false;
@@ -173,12 +203,18 @@ export const useBookingStore = create(
         return remainingTime;
       },
       
+      // NUEVA FUNCIÓN: Detener explícitamente el timeout de reserva
+      stopReservationTimeout: () => {
+        set({ reservationStartTime: null });
+      },
+      
       resetBooking: () => {
         set({
           selectedSeats: [],
           reservationStartTime: null,
           totalPrice: 0,
-          bookingStep: 'seat-selection'
+          bookingStep: 'seat-selection',
+          ticketTypes: [] // Resetear también los tipos de tickets
         });
       },
       
@@ -194,7 +230,7 @@ export const useBookingStore = create(
             return true;
 
           case 'type-seat':
-            return true
+            return true;
             
           case 'payment':
             return true;

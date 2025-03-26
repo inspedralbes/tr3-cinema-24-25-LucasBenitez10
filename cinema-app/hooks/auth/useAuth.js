@@ -1,22 +1,23 @@
-import { authService }from "@/services/authService"
+import { authService } from "@/services/authService"
 import { useRouter } from 'next/navigation';
 import { useUserStore } from "@/store/userStore"
-
 
 export default function useAuth() {
     const { clearUser } = useUserStore()
     const { login, register, logout } = authService
     const router = useRouter()
 
-    const handleLogin = async (userData) => {
+    const handleLogin = async (userData, shouldRedirect = true) => {
         const { email, password } = userData
         const response = await login({ email, password })
         if (response) {
-            const { role } = response.user
-            if (role === 'admin') {
-                router.push('/administracion')
-            } else if (role === 'customer') {
-                router.push('/peliculas')
+            if (shouldRedirect) {
+                const { role } = response.user
+                if (role === 'admin') {
+                    router.push('/administracion')
+                } else if (role === 'customer') {
+                    router.push('/peliculas')
+                }
             }
             return response.user
         } else {
@@ -34,8 +35,9 @@ export default function useAuth() {
         const response = await register(userData);
         
         if (response) {
+            // Redirigir al login después de un registro exitoso
+            router.push('/login');
             return response.data;
-            
         } else {
             throw new Error(response.message);
         }

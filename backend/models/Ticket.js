@@ -1,52 +1,81 @@
 const mongoose = require('mongoose');
 
 const ticketSchema = new mongoose.Schema({
-    screening: { 
+    ticketCode: {
+        type: String,
+        required: true
+        // Eliminamos unique: true de aquí para evitar la definición duplicada
+    },
+    screening: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Screening',
         required: true
     },
-    customer: {
-        name: { type: String },
-        email: { type: String, required: true },
-        phone: { type: String }
+    // Referencia al tipo de entrada
+    ticketType: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'TicketType',
+        required: true
     },
-    // Reemplazar seatNumber con un array de asientos
-    seats: [{
-        row: { type: String },
-        number: { type: String },
-        _id: false // Para evitar que cada asiento tenga su propio _id
-    }],
-    totalSeats: { type: Number, default: function() { return this.seats.length; } },
-    ticketType: { 
+    // Almacenar también el código (más fácil para reportes)
+    ticketTypeCode: {
         type: String,
-        enum: ['regular', 'vip', 'student', 'senior'],
-        default: 'regular'
+        required: true
     },
-    price: { type: Number, required: true },
-    paymentStatus: { 
+    seats: {
+        row: String,
+        number: String
+    },
+    customerInfo: {
+        name: String,
+        email: String,
+        phone: String
+    },
+    // Usuario relacionado (opcional)
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    // Guardar el precio pagado en el momento de la compra
+    pricePaid: {
+        type: Number,
+        required: true
+    },
+    status: {
         type: String,
-        enum: ['pending', 'completed', 'refunded', 'failed'],
-        default: 'pending'
+        enum: ['active', 'used', 'cancelled', 'expired'],
+        default: 'active'
     },
-    paymentMethod: { 
+    paymentMethod: {
         type: String,
-        enum: ['credit_card','cash']
+        enum: ['credit_card', 'cash', 'paypal', 'other'],
+        default: 'credit_card'
     },
-    ticketCode: { type: String, unique: true }
+    usedAt: {
+        type: Date
+    }
 }, {
     timestamps: true
 });
 
-// Validación para asegurar que hay al menos un asiento
-ticketSchema.path('seats').validate(function(seats) {
-    return seats && seats.length > 0;
-}, 'Al menos un asiento debe ser seleccionado');
+// Pre-save hook para generar código de ticket si no existe
+ticketSchema.pre('save', async function(next) {
+    if (!this.ticketCode) {
+        // Generar un código único alfanumérico
+        const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const datePart = Date.now().toString(36).substring(4).toUpperCase();
+        this.ticketCode = `TK-${randomPart}-${datePart}`;
+    }
+    next();
+});
 
+// Definimos todos los índices usando schema.index()
+ticketSchema.index({ ticketCode: 1 }, { unique: true }); // Mantener este para unicidad
 ticketSchema.index({ screening: 1 });
-ticketSchema.index({ 'customer.email': 1 });
-// Índice para búsquedas rápidas por asientos
-ticketSchema.index({ 'screening': 1, 'seats.row': 1, 'seats.number': 1 });
+ticketSchema.index({ ticketType: 1 });
+ticketSchema.index({ 'customerInfo.email': 1 });
+ticketSchema.index({ user: 1 });
+ticketSchema.index({ status: 1 });
 
 const Ticket = mongoose.model('Ticket', ticketSchema);
 

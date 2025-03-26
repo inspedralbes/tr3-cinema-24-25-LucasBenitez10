@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const seedRooms = require('../seeders/roomSeeder');
+const seedTicketTypes = require('../seeders/ticketTypeSeeder');
 
 
 const uri = 'mongodb+srv://benitezsojo:sdzpiuaOmyRUyeCT@cluster0.zoqvi.mongodb.net/cinemabar?retryWrites=true&w=majority&appName=Cluster0';
@@ -10,7 +11,10 @@ const connectDB = async () => {
 
         console.log("Conexión exitosa a MongoDB usando Mongoose");
 
+        // Ejecutar los seeders
         seedRooms();
+        seedTicketTypes(); // Nuevo seeder para tipos de tickets
+        
         // Ejecutar sincronización de películas (solo una vez al iniciar)
         try {
             console.log('Iniciando sincronización inicial de películas...');

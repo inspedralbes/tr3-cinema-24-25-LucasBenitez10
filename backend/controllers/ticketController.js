@@ -1,5 +1,6 @@
 const Ticket = require('../models/Ticket');
 const Screening = require('../models/Screening');
+const TicketType = require('../models/TicketType');
 const crypto = require('crypto');
 
 /**
@@ -20,7 +21,7 @@ const generateTicketCode = () => {
  */
 const purchaseTickets = async (ticketData) => {
   try {
-    const { screeningId, customerInfo, seats, ticketType, paymentMethod } = ticketData;
+    const { screeningId, customerInfo, seats, paymentMethod } = ticketData;
 
     // Verificar que la función exista y tenga asientos disponibles
     const screening = await Screening.findById(screeningId);
@@ -34,51 +35,93 @@ const purchaseTickets = async (ticketData) => {
       throw new Error('No se pueden comprar boletos para esta función');
     }
 
-    // Determinar el precio basado en el tipo de boleto
-    let price = screening.priceRegular;
-    if (ticketType === 'vip') {
-      price = screening.priceVIP;
-    } else if (ticketType === 'student' || ticketType === 'senior') {
-      price = screening.priceRegular * 0.8; // 20% de descuento
-    }
+    // Crear tickets individuales para cada asiento
+    const tickets = [];
+    const ticketCode = generateTicketCode(); // Código base que se puede modificar para cada ticket
 
-    // En lugar de crear múltiples tickets, crear uno solo con todos los asientos
-
-    // Verificar si alguno de los asientos ya está ocupado
     for (const seat of seats) {
+      // Verificar si el asiento ya está ocupado
       const seatIdentifier = `${seat.row}${seat.number}`;
       const existingTicket = await Ticket.findOne({
         screening: screeningId,
-        'seats': { $elemMatch: { row: seat.row, number: seat.number } }
+        'seats.row': seat.row,
+        'seats.number': seat.number
       });
 
       if (existingTicket) {
         throw new Error(`El asiento ${seatIdentifier} ya está ocupado`);
       }
+
+      // Buscar el tipo de ticket para obtener el ObjectId
+      let ticketTypeId;
+      let ticketTypeCode = seat.type || 'normal';
+      let pricePaid = seat.price || screening.priceRegular;
+
+      try {
+        // Intentar encontrar el tipo de ticket por código
+        const ticketTypeDoc = await TicketType.findOne({ code: ticketTypeCode });
+        
+        if (ticketTypeDoc) {
+          ticketTypeId = ticketTypeDoc._id;
+          
+          // Si no se especificó un precio, usar el del tipo de ticket
+          if (!seat.price) {
+            // Verificar si hay un precio especial para esta película
+            pricePaid = ticketTypeDoc.getPriceForMovie(screening.movie) || ticketTypeDoc.price;
+          }
+        } else {
+          console.warn(`Tipo de ticket "${ticketTypeCode}" no encontrado. Buscando uno predeterminado.`);
+          // Si no se encuentra, intentar usar uno predeterminado
+          const defaultTicketType = await TicketType.findOne({ code: 'normal' });
+          
+          if (defaultTicketType) {
+            ticketTypeId = defaultTicketType._id;
+            ticketTypeCode = 'normal';
+            pricePaid = defaultTicketType.price;
+          } else {
+            throw new Error(`No se pudo encontrar un tipo de ticket válido para "${ticketTypeCode}"`);
+          }
+        }
+      } catch (ticketTypeError) {
+        console.error('Error al buscar tipo de ticket:', ticketTypeError);
+        throw new Error(`Error al buscar tipo de ticket: ${ticketTypeError.message}`);
+      }
+
+      // Crear un nuevo ticket para este asiento
+      const ticketIndividual = {
+        ticketCode: `${ticketCode}-${seatIdentifier}`, // Código único para cada ticket
+        screening: screeningId,
+        ticketType: ticketTypeId, // ObjectId del tipo de ticket
+        ticketTypeCode, // Código del tipo de ticket (string)
+        seats: {
+          row: seat.row,
+          number: seat.number
+        },
+        customerInfo: customerInfo,
+        pricePaid: pricePaid, // Precio individual del asiento
+        status: 'active', // Estado predeterminado
+        paymentMethod: paymentMethod?.type || 'credit_card'
+      };
+
+      // Si se proporciona un usuario, asignarlo
+      if (ticketData.user) {
+        ticketIndividual.user = ticketData.user;
+      }
+
+      console.log('Creando ticket con datos:', ticketIndividual);
+
+      // Crear el ticket en la base de datos
+      const createdTicket = await Ticket.create(ticketIndividual);
+      tickets.push(createdTicket);
     }
 
-    // Generar código único para el boleto
-    const ticketCode = generateTicketCode();
-
-    // Crear un solo ticket con todos los asientos
-    const ticket = await Ticket.create({
-      screening: screeningId,
-      customer: customerInfo,
-      seats: seats,
-      ticketType,
-      price: price * seats.length, // Multiplicar el precio por la cantidad de asientos
-      paymentStatus: 'completed',
-      paymentMethod: paymentMethod.type || 'credit_card',
-      ticketCode
-    });
-
-    // Actualizar asientos disponibles
+    // Actualizar asientos disponibles en la función
     await Screening.updateOne(
       { _id: screeningId },
       { $inc: { availableSeats: -seats.length } }
     );
 
-    return [ticket]; // Devolver array con un solo ticket para mantener compatibilidad
+    return tickets;
   } catch (error) {
     console.error('Error al comprar tickets:', error);
     throw error;
@@ -99,7 +142,8 @@ const getTicketsByScreening = async (screeningId) => {
           path: 'movie room',
           select: 'title name'
         }
-      });
+      })
+      .populate('ticketType');
 
     return tickets;
   } catch (error) {
@@ -115,7 +159,7 @@ const getTicketsByScreening = async (screeningId) => {
  */
 const getTicketsByCustomer = async (email) => {
   try {
-    const tickets = await Ticket.find({ 'customer.email': email })
+    const tickets = await Ticket.find({ 'customerInfo.email': email })
       .populate({
         path: 'screening',
         populate: {
@@ -123,6 +167,7 @@ const getTicketsByCustomer = async (email) => {
           select: 'title name poster_path startTime date'
         }
       })
+      .populate('ticketType')
       .sort({ createdAt: -1 });
 
     return tickets;
@@ -146,7 +191,8 @@ const verifyTicket = async (ticketCode) => {
           path: 'movie room',
           select: 'title name'
         }
-      });
+      })
+      .populate('ticketType');
 
     if (!ticket) {
       throw new Error('Ticket no encontrado o inválido');
@@ -172,7 +218,7 @@ const cancelTicket = async (ticketId) => {
       throw new Error('Ticket no encontrado');
     }
 
-    if (ticket.paymentStatus === 'refunded') {
+    if (ticket.status === 'cancelled') {
       throw new Error('Este ticket ya ha sido cancelado');
     }
 
@@ -197,7 +243,7 @@ const cancelTicket = async (ticketId) => {
     }
 
     // Actualizar el ticket
-    ticket.paymentStatus = 'refunded';
+    ticket.status = 'cancelled';
     await ticket.save();
 
     // Actualizar disponibilidad de asientos

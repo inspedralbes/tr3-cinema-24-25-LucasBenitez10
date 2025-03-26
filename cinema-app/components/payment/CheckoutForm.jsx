@@ -13,11 +13,13 @@ const CheckoutForm = () => {
   const [succeeded, setSucceeded] = useState(false);
   const [disabled, setDisabled] = useState(true);
   const [clientSecret, setClientSecret] = useState('');
+  const [ticketTypeData, setTicketTypeData] = useState({});
+  const [allTickets, setAllTickets] = useState([]);
 
   const {
     guestData,
     user,
-  } = useUserStore()
+  } = useUserStore();
 
   const { movieSelected } = useMovieStore();
 
@@ -27,8 +29,74 @@ const CheckoutForm = () => {
     totalPrice,
     previousStep,
     setBookingStep,
-    nextStep
+    nextStep,
+    stopReservationTimeout,
+    ticketTypes // Obtener los tipos de tickets seleccionados
   } = useBookingStore();
+
+  // Función para generar código de ticket único
+  const generateTicketCode = () => {
+    const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const datePart = Date.now().toString(36).substring(4).toUpperCase();
+    return `TK-${randomPart}-${datePart}`;
+  };
+
+  // Cargar información de tipos de tickets desde el servidor
+  useEffect(() => {
+    const fetchTicketTypeData = async () => {
+      try {
+        if (movieSelected && movieSelected._id) {
+          // Obtener tipos de tickets específicos para esta película
+          const response = await fetch(`http://localhost:4000/api/ticket-types/movie/${movieSelected._id}`);
+          if (!response.ok) {
+            throw new Error('Error al cargar tipos de tickets');
+          }
+          const data = await response.json();
+
+          // Convertir a un objeto para fácil acceso por código
+          const typeMap = {};
+          data.forEach(type => {
+            typeMap[type.code] = type;
+          });
+
+          setTicketTypeData(typeMap);
+          console.log('Datos de tipos de tickets cargados:', typeMap);
+        }
+      } catch (err) {
+        console.error('Error al cargar datos de tipos de tickets:', err);
+      }
+    };
+
+    fetchTicketTypeData();
+  }, [movieSelected]);
+
+  // Detener timeout si la página se recarga
+  useEffect(() => {
+    // Guardar el estado actual antes de recargar
+    const handleBeforeUnload = () => {
+      // Si estamos en el proceso de pago pero aún no completado,
+      // mantenemos el timeout. En cualquier otro caso lo detenemos.
+      if (!succeeded) {
+        localStorage.setItem('paymentInProgress', 'true');
+      } else {
+        stopReservationTimeout();
+        localStorage.removeItem('paymentInProgress');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Verificar si venimos de una recarga durante el pago
+    const paymentInProgress = localStorage.getItem('paymentInProgress');
+    if (!paymentInProgress) {
+      // Si no estamos en proceso de pago, detener el timeout
+      stopReservationTimeout();
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [stopReservationTimeout, succeeded]);
 
   useEffect(() => {
     // Crear PaymentIntent al montar el componente
@@ -53,11 +121,26 @@ const CheckoutForm = () => {
           return typeof seat === 'string' ? seat : (seat.id || seat);
         }).join(',');
 
-        const seatTypes = selectedSeats.map(seat => {
-          return typeof seat === 'object' && seat.type ? seat.type : 'normal';
-        }).join(',');
+        // Usar los tipos de tickets si están disponibles
+        let ticketTypeInfo = [];
+        if (ticketTypes && ticketTypes.length > 0) {
+          ticketTypeInfo = ticketTypes.map(type =>
+            `${type.code}:${type.quantity}`
+          ).join(',');
+        } else {
+          // Fallback al comportamiento anterior
+          const seatTypes = selectedSeats.map(seat => {
+            return typeof seat === 'object' && seat.type ? seat.type : 'normal';
+          }).join(',');
+          ticketTypeInfo = seatTypes;
+        }
 
-        console.log('Datos a enviar a Stripe:', { seatIds, seatTypes, totalSeats: selectedSeats.length });
+        console.log('Datos a enviar a Stripe:', {
+          seatIds,
+          ticketTypeInfo,
+          totalSeats: selectedSeats.length,
+          totalAmount: totalPrice
+        });
 
         const response = await fetch('http://localhost:4000/api/payments/create-payment-intent', {
           method: 'POST',
@@ -67,7 +150,7 @@ const CheckoutForm = () => {
             currency: 'eur',
             metadata: {
               seats: seatIds,
-              seatTypes: seatTypes,
+              ticketTypes: ticketTypeInfo,
               totalSeats: selectedSeats.length
             }
           }),
@@ -87,14 +170,13 @@ const CheckoutForm = () => {
     };
 
     createPaymentIntent();
-  }, [totalPrice, selectedSeats]);
+  }, [totalPrice, selectedSeats, ticketTypes]);
 
   const handleChange = (event) => {
     // Escuchar cambios en CardElement
     setDisabled(event.empty);
     setError(event.error ? event.error.message : '');
   };
-
 
   //DATOS PARA EL TICKET
   const handleSubmit = async (event) => {
@@ -126,131 +208,239 @@ const CheckoutForm = () => {
         setProcessing(false);
         setSucceeded(true);
 
+        // Detener el timeout de reserva inmediatamente al completar el pago
+        stopReservationTimeout();
+        localStorage.removeItem('paymentInProgress');
+
         // Generar tickets después del pago exitoso
         try {
-          console.log('Preparando datos para generar tickets, asientos:', selectedSeats);
+          console.log('Preparando datos para generar tickets...');
+          console.log('Asientos seleccionados:', selectedSeats);
+          console.log('Tipos de entradas seleccionados:', ticketTypes);
+          console.log('Datos de tipos de tickets disponibles:', ticketTypeData);
 
-          // Preparar los datos para la API de tickets
-          const ticketData = {
-            screeningId: movieSelected._id,
-            customerInfo: {
-              email: guestData.email,
-              name: guestData.name,
-              phone: guestData.phone
-            },
-            seats: selectedSeats.map(seat => {
-              // Determinar el formato del asiento y extraer fila y número
+          // Comprobamos que tenemos toda la información necesaria
+          if (!movieSelected || !movieSelected._id) {
+            throw new Error('No hay una proyección seleccionada válida');
+          }
+
+          if (Object.keys(ticketTypeData).length === 0) {
+            throw new Error('No se pudieron cargar los datos de tipos de tickets');
+          }
+
+          // Enfoque alternativo: crear UN SOLO ticket para todos los asientos
+          // Esto puede ser más compatible con el backend si está esperando una estructura específica
+          const allSeats = [];
+          let totalSeats = 0;
+
+          // Preparar información de todos los asientos
+          if (ticketTypes && ticketTypes.length > 0) {
+            let seatIndex = 0;
+
+            for (const ticketType of ticketTypes) {
+              for (let i = 0; i < ticketType.quantity; i++) {
+                if (seatIndex < selectedSeats.length) {
+                  const seat = selectedSeats[seatIndex];
+
+                  // Determinar fila y número
+                  let seatStr;
+                  if (typeof seat === 'string') {
+                    seatStr = seat;
+                  } else if (seat && seat.id) {
+                    seatStr = seat.id;
+                  } else {
+                    seatStr = String(seat);
+                  }
+
+                  const row = seatStr.charAt(0);
+                  const number = seatStr.substring(1);
+
+                  // Obtener el tipo de ticket
+                  const typeInfo = ticketTypeData[ticketType.code];
+
+                  if (!typeInfo || !typeInfo._id) {
+                    console.error(`No se encontró información para el tipo: ${ticketType.code}`);
+                    continue;
+                  }
+
+                  // Añadir información del asiento
+                  allSeats.push({
+                    row: row,
+                    number: number,
+                    type: ticketType.code,
+                    price: ticketType.price
+                  });
+
+                  totalSeats++;
+                  seatIndex++;
+                }
+              }
+            }
+          } else {
+            // Fallback
+            for (const seat of selectedSeats) {
               let seatStr;
               if (typeof seat === 'string') {
                 seatStr = seat;
               } else if (seat && seat.id) {
                 seatStr = seat.id;
               } else {
-                console.warn('Formato de asiento desconocido:', seat);
-                seatStr = String(seat); // Intentar convertir a string como fallback
+                seatStr = String(seat);
               }
 
               const row = seatStr.charAt(0);
               const number = seatStr.substring(1);
 
-              return { row, number };
-            }),
-            ticketType: "regular",
-            paymentMethod: {
-              type: "credit_card",
+              allSeats.push({
+                row: row,
+                number: number,
+                type: 'normal',
+                price: ticketTypeData['normal']?.price || 10.40
+              });
+
+              totalSeats++;
             }
-          };
-
-          console.log('Enviando datos para generar tickets:', ticketData);
-
-          // Llamar a la API para generar los tickets
-          const ticketResponse = await fetch('http://localhost:4000/api/tickets', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(ticketData)
-          });
-
-          if (!ticketResponse.ok) {
-            const errorData = await ticketResponse.json().catch(() => ({}));
-            console.error('Error del servidor al generar tickets:', errorData);
-            throw new Error(`Error al generar los tickets: ${errorData.message || 'Error desconocido'}`);
           }
 
-          const tickets = await ticketResponse.json();
-          console.log('Tickets generados exitosamente:', tickets);
+          console.log('Información de asientos preparada:', allSeats);
 
-          // Marcar los asientos como ocupados
-          try {
-            // Preparar los IDs de los asientos en formato "A1", "B2", etc.
-            const seatIds = selectedSeats.map(seat => {
-              // Si seat es un string, usarlo directamente
-              if (typeof seat === 'string') {
-                return seat;
-              }
-              // Si seat es un objeto con propiedad id, usar esa propiedad
-              if (seat && seat.id) {
-                return seat.id;
-              }
-              // Si hay otra estructura, intentar extraer la información necesaria
-              if (seat) {
-                console.log("Formato de asiento inesperado:", seat);
-                return seat.toString();
-              }
-              return null;
-            }).filter(id => id !== null); // Eliminar cualquier null
+          // Generar un código base para todos los tickets
+          const baseTicketCode = generateTicketCode();
 
-            console.log("Asientos a marcar como ocupados:", seatIds);
-            console.log("ID de la proyección:", movieSelected._id);
+          // Ahora vamos a crear tickets individuales para cada asiento
+          const tickets = [];
 
-            if (seatIds.length > 0) {
-              // Verificar que movieSelected._id es un ObjectId válido
-              if (!movieSelected._id || typeof movieSelected._id !== 'string' || !movieSelected._id.match(/^[0-9a-fA-F]{24}$/)) {
-                console.error('ID de proyección inválido:', movieSelected._id);
-                throw new Error('ID de proyección inválido');
-              }
+          for (const seat of allSeats) {
+            // Obtener el tipo de ticket correspondiente al código
+            const typeInfo = ticketTypeData[seat.type];
 
-              const updateResponse = await fetch('http://localhost:4000/api/seat-status/mark-occupied', {
+            if (!typeInfo || !typeInfo._id) {
+              console.error(`No se encontró información para el tipo: ${seat.type}`);
+              continue;
+            }
+
+            // Generar código único para este ticket basado en el asiento
+            const seatIdentifier = `${seat.row}${seat.number}`;
+            const uniqueTicketCode = `${baseTicketCode}-${seatIdentifier}`;
+
+            // Crear el ticket para este asiento
+            const ticketData = {
+              ticketCode: uniqueTicketCode, // Importante: añadir el código del ticket
+              screening: movieSelected._id,
+              ticketType: typeInfo._id,
+              ticketTypeCode: seat.type,
+              pricePaid: seat.price,
+              seats: {
+                row: seat.row,
+                number: seat.number
+              },
+              customerInfo: {
+                email: guestData?.email || user?.email || 'cliente@ejemplo.com',
+                name: guestData?.name || user?.name || 'Cliente Cine',
+                phone: guestData?.phone || user?.phone || ''
+              },
+              status: 'active', // Estado predeterminado
+              paymentMethod: 'credit_card'
+            };
+
+            if (user && user._id) {
+              ticketData.user = user._id;
+            }
+
+            console.log('Enviando datos de ticket:', ticketData);
+
+            try {
+              const response = await fetch('http://localhost:4000/api/tickets', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                  screeningId: movieSelected._id,
-                  seatIds: seatIds
-                })
+                body: JSON.stringify(ticketData)
               });
 
-              if (!updateResponse.ok) {
-                const errorText = await updateResponse.text();
-                console.error("Error al actualizar asientos, respuesta del servidor:", errorText);
-                throw new Error(`Error al actualizar el estado de los asientos: ${errorText}`);
+              if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Error al crear ticket:', errorData);
+                throw new Error(`Error al crear ticket: ${JSON.stringify(errorData)}`);
               }
 
-              const updateResult = await updateResponse.json();
-              console.log('Asientos marcados como ocupados:', updateResult);
-            } else {
-              console.warn("No hay asientos para marcar como ocupados");
+              const ticketResult = await response.json();
+              console.log('Ticket creado correctamente:', ticketResult);
+              tickets.push(ticketResult);
+            } catch (ticketError) {
+              console.error(`Error al crear ticket para asiento ${seat.row}${seat.number}:`, ticketError);
+              // Continuamos con el siguiente asiento incluso si hay error
             }
-          } catch (seatUpdateError) {
-            console.error('Error al actualizar estado de asientos:', seatUpdateError);
-            // No interrumpimos el flujo ya que los tickets se generaron correctamente
           }
 
-          // Guardar la información de los tickets en el estado o localStorage
-          localStorage.setItem('lastPurchasedTickets', JSON.stringify(tickets));
+          if (tickets.length > 0) {
+            console.log(`Se han creado ${tickets.length} tickets correctamente`);
+            setAllTickets(tickets);
 
-          // Avanzar al siguiente paso
-          setTimeout(() => {
-            nextStep(); // Usar la función nextStep del store que avanzará a 'confirmation'
-          }, 1000);
+            // Asegurarnos de guardar un array plano, no anidado
+            // Guardar tickets como un array plano sin envolverlo en otro array
+            console.log("Formato de tickets antes de guardar:", tickets);
+
+            try {
+              localStorage.setItem('lastPurchasedTickets', JSON.stringify(tickets));
+
+              // Verificar que se guardó correctamente
+              const savedData = localStorage.getItem('lastPurchasedTickets');
+              const parsedData = JSON.parse(savedData);
+              console.log("Verificación de formato después de guardar:", parsedData);
+              console.log("¿Es un array?", Array.isArray(parsedData));
+              console.log("Cantidad de tickets guardados:", parsedData.length);
+
+              if (Array.isArray(parsedData) && parsedData.length === tickets.length) {
+                console.log("Tickets guardados correctamente en localStorage");
+              } else {
+                console.error("Error: El formato de los tickets guardados no es el esperado");
+              }
+            } catch (storageError) {
+              console.error("Error al guardar tickets en localStorage:", storageError);
+            }
+
+            // Marcar asientos como ocupados (código existente para marcar asientos)
+            try {
+              const seatIds = selectedSeats.map(seat => {
+                if (typeof seat === 'string') return seat;
+                if (seat && seat.id) return seat.id;
+                return String(seat);
+              }).filter(Boolean);
+
+              if (seatIds.length > 0) {
+                const updateResponse = await fetch('http://localhost:4000/api/seat-status/mark-occupied', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    screeningId: movieSelected._id,
+                    seatIds: seatIds
+                  })
+                });
+
+                if (!updateResponse.ok) {
+                  console.error('Error al marcar asientos como ocupados');
+                } else {
+                  console.log('Asientos marcados como ocupados correctamente');
+                }
+              }
+            } catch (seatError) {
+              console.error('Error al actualizar el estado de los asientos:', seatError);
+            }
+
+            // Avanzar al siguiente paso
+            setTimeout(() => {
+              nextStep();
+            }, 1000);
+          } else {
+            throw new Error('No se pudo crear ningún ticket');
+          }
         } catch (ticketError) {
           console.error('Error al generar tickets:', ticketError);
-          // Nota: No mostramos este error al usuario porque el pago ya se completó
-          // El administrador debería conciliar los pagos sin tickets manualmente
 
-          // A pesar del error, avanzamos al siguiente paso
+          // A pesar del error, si el pago se realizó, avanzamos
           setTimeout(() => {
             nextStep();
           }, 1000);
@@ -284,6 +474,13 @@ const CheckoutForm = () => {
 
   // Generar un resumen de asientos por tipo
   const seatSummary = () => {
+    if (ticketTypes && ticketTypes.length > 0) {
+      return ticketTypes
+        .filter(type => type.quantity > 0)
+        .map(type => `${type.quantity} ${type.name}${type.quantity !== 1 ? 's' : ''}`)
+        .join(', ');
+    }
+
     const seatsByType = useBookingStore.getState().getSelectedSeatsByType();
     return Object.entries(seatsByType)
       .filter(([_, count]) => count > 0)
@@ -366,8 +563,8 @@ const CheckoutForm = () => {
             <button
               disabled={processing || disabled || succeeded}
               className={`py-3 px-6 rounded-md font-medium text-white transition-colors flex-grow sm:flex-grow-0 sm:min-w-[200px] ${processing || disabled || succeeded
-                  ? 'bg-gray-700 cursor-not-allowed'
-                  : 'bg-red-600 hover:bg-red-700'
+                ? 'bg-gray-700 cursor-not-allowed'
+                : 'bg-red-600 hover:bg-red-700'
                 }`}
             >
               {processing ? (

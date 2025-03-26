@@ -2,16 +2,22 @@
 import { useState } from 'react';
 import useAuth from '@/hooks/auth/useAuth';
 import { useUserStore } from '@/store/userStore';
+import { useBookingStore } from '@/store/bookingStore';
 
-export default function LoginForm() {
+export default function LoginForm({ isInBookingProcess = false }) {
     const { handleLogin } = useAuth();
     const { setUser, user } = useUserStore();
+    const { nextStep } = useBookingStore();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
+        setLoading(true);
 
         const userData = {
             email,
@@ -19,14 +25,28 @@ export default function LoginForm() {
         };
 
         try {
-            const res = await handleLogin(userData);
+            // Pasar false como segundo parámetro cuando estamos en el proceso de compra
+            // para evitar la redirección automática
+            const res = await handleLogin(userData, !isInBookingProcess);
+            
             if(res) {
                 setUser(res);
+                
+                // Si estamos en el proceso de compra, avanzar al siguiente paso
+                if (isInBookingProcess) {
+                    // Opcional: pequeña pausa para permitir que el estado se actualice
+                    setTimeout(() => {
+                        nextStep();
+                    }, 300);
+                }
             }
             console.log("Contenido de userStore: ", user);
             console.log('Login result:', res);
         } catch (error) {
             console.error('Login error:', error);
+            setError('Credenciales incorrectas o error de conexión');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -59,11 +79,32 @@ export default function LoginForm() {
                     />
                 </div>
                 
+                {error && (
+                    <div className="bg-red-900 border border-red-700 text-white px-4 py-3 rounded-md" role="alert">
+                        <p className="text-sm">{error}</p>
+                    </div>
+                )}
+                
                 <button 
                     type="submit" 
-                    className="w-full mt-2 py-3 rounded font-medium transition-colors duration-200 bg-red-600 hover:bg-red-700 text-white"
+                    disabled={loading}
+                    className={`w-full mt-2 py-3 rounded font-medium transition-colors duration-200 ${
+                        loading 
+                        ? 'bg-gray-700 cursor-not-allowed' 
+                        : 'bg-red-600 hover:bg-red-700'
+                    } text-white`}
                 >
-                    Iniciar Sesión
+                    {loading ? (
+                        <span className="flex items-center justify-center">
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Procesando...
+                        </span>
+                    ) : (
+                        'Iniciar Sesión'
+                    )}
                 </button>
             </form>
         </div>

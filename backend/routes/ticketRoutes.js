@@ -9,36 +9,40 @@ const ticketController = require('../controllers/ticketController');
  */
 router.post('/', async (req, res) => {
   try {
-    const {
-      screeningId,
-      customerInfo,
-      seats,
-      ticketType,
-      paymentMethod
-    } = req.body;
-    
-    // Validaciones básicas
-    if (!screeningId || !customerInfo || !seats || !seats.length) {
-      return res.status(400).json({ 
-        error: 'Faltan campos requeridos' 
-      });
+    // Adaptamos el formato de los datos que recibimos
+    const ticketData = req.body;
+
+    // Verifica si los datos vienen en el formato del frontend o del backend
+    // y haz las adaptaciones necesarias
+    if (ticketData.screening && !ticketData.screeningId) {
+      ticketData.screeningId = ticketData.screening;
     }
-    
-    // Validar información del cliente
-    if (!customerInfo.email) {
-      return res.status(400).json({ 
-        error: 'El email del cliente es requerido' 
-      });
+
+    // Verificamos que tengamos toda la información necesaria
+    if (!ticketData.screeningId && !ticketData.screening) {
+      return res.status(400).json({ error: 'El ID de la proyección es requerido' });
     }
-    
-    const ticketData = {
-      screeningId,
-      customerInfo,
-      seats,
-      ticketType: ticketType || 'regular',
-      paymentMethod
-    };
-    
+
+    if (!ticketData.customerInfo || !ticketData.customerInfo.email) {
+      return res.status(400).json({ error: 'La información del cliente con email es requerida' });
+    }
+
+    // Verificamos si seats viene como un objeto único o como array
+    if (ticketData.seats && !Array.isArray(ticketData.seats)) {
+      // Convertir a array si viene como objeto único
+      ticketData.seats = [ticketData.seats];
+    }
+
+    if (!ticketData.seats || !ticketData.seats.length) {
+      return res.status(400).json({ error: 'Al menos un asiento es requerido' });
+    }
+
+    // Adaptamos paymentMethod si viene como string
+    if (typeof ticketData.paymentMethod === 'string') {
+      ticketData.paymentMethod = { type: ticketData.paymentMethod };
+    }
+
+    // Ahora pasamos los datos al controlador
     const tickets = await ticketController.purchaseTickets(ticketData);
     res.status(201).json(tickets);
   } catch (error) {
@@ -57,6 +61,8 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Resto de rutas sin cambios...
 
 /**
  * @route GET /api/tickets/screening/:screeningId
