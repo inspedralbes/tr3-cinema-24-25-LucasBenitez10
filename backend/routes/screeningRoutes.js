@@ -64,6 +64,48 @@ router.get('/filters', async (req, res) => {
     });
   }
 });
+router.get('/filters', async (req, res) => {
+  try {
+    const filters = {};
+
+    // Support both movieId and screeningId
+    if (req.query.movieId) {
+      filters.movie = req.query.movieId;
+    }
+
+    if (req.query.screeningId) {
+      filters._id = req.query.screeningId;
+    }
+
+    // Other existing filters...
+    if (req.query.roomId) {
+      filters.room = req.query.roomId;
+    }
+
+    if (req.query.date) {
+      filters.date = req.query.date;
+    }
+
+    if (req.query.status) {
+      filters.status = req.query.status;
+    }
+
+    // Llamar a la función getScreenings con los filtros
+    const screenings = await getScreenings(filters);
+
+    // Devolver la respuesta en el mismo formato que las otras rutas
+    res.status(200).json({
+      success: true,
+      data: screenings
+    });
+  } catch (error) {
+    console.error('Error al filtrar proyecciones:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al filtrar proyecciones'
+    });
+  }
+});
 router.get('/movie/:movieId', getScreeningsByMovie);
 router.get('/date/:date', getScreeningsByDate);
 router.post('/', createScreening);

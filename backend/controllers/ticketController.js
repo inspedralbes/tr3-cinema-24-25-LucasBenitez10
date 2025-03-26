@@ -1,3 +1,4 @@
+// controllers/ticketController.js
 const Ticket = require('../models/Ticket');
 const Screening = require('../models/Screening');
 const TicketType = require('../models/TicketType');
@@ -259,10 +260,65 @@ const cancelTicket = async (ticketId) => {
   }
 };
 
+/**
+ * Cancela todas las entradas relacionadas con una sesión específica
+ * @param {String} screeningId - ID de la sesión
+ * @returns {Promise<Object>} Resultado de la operación
+ */
+const cancelTicketsByScreeningId = async (screeningId) => {
+  try {
+    // Buscar todas las entradas activas para esta sesión
+    const tickets = await Ticket.find({ 
+      screening: screeningId,
+      status: 'active'
+    });
+    
+    if (tickets.length === 0) {
+      return { message: 'No hay entradas activas para esta sesión', modifiedCount: 0 };
+    }
+    
+    // Actualizar todas las entradas a estado 'cancelled'
+    const result = await Ticket.updateMany(
+      { screening: screeningId, status: 'active' },
+      { $set: { status: 'cancelled' } }
+    );
+    
+    return {
+      message: `${result.modifiedCount} entradas canceladas exitosamente`,
+      modifiedCount: result.modifiedCount
+    };
+  } catch (error) {
+    console.error('Error al cancelar entradas por ID de sesión:', error);
+    throw error;
+  }
+};
+
+/**
+ * Elimina todas las entradas relacionadas con una sesión específica
+ * @param {String} screeningId - ID de la sesión
+ * @returns {Promise<Object>} Resultado de la operación
+ */
+const deleteTicketsByScreeningId = async (screeningId) => {
+  try {
+    // Eliminar todas las entradas para esta sesión
+    const result = await Ticket.deleteMany({ screening: screeningId });
+    
+    return {
+      message: `${result.deletedCount} entradas eliminadas exitosamente`,
+      deletedCount: result.deletedCount
+    };
+  } catch (error) {
+    console.error('Error al eliminar entradas por ID de sesión:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   purchaseTickets,
   getTicketsByScreening,
   getTicketsByCustomer,
   verifyTicket,
-  cancelTicket
+  cancelTicket,
+  cancelTicketsByScreeningId,
+  deleteTicketsByScreeningId
 };

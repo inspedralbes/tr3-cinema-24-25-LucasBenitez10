@@ -62,8 +62,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Resto de rutas sin cambios...
-
 /**
  * @route GET /api/tickets/screening/:screeningId
  * @desc Obtener tickets por función
@@ -151,6 +149,56 @@ router.post('/:id/cancel', async (req, res) => {
     }
     
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @route PUT /api/tickets/cancel-by-screening/:screeningId
+ * @desc Cancelar todas las entradas de una sesión
+ * @access Private (debería tener autenticación de admin)
+ */
+router.put('/cancel-by-screening/:screeningId', async (req, res) => {
+  try {
+    const result = await ticketController.cancelTicketsByScreeningId(
+      req.params.screeningId
+    );
+    
+    res.json({
+      success: true,
+      message: result.message,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Error al cancelar entradas por sesión:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * @route DELETE /api/tickets/delete-by-screening/:screeningId
+ * @desc Eliminar todas las entradas de una sesión
+ * @access Private (debería tener autenticación de admin)
+ */
+router.delete('/delete-by-screening/:screeningId', async (req, res) => {
+  try {
+    const result = await ticketController.deleteTicketsByScreeningId(
+      req.params.screeningId
+    );
+    
+    res.json({
+      success: true,
+      message: result.message,
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error al eliminar entradas por sesión:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
