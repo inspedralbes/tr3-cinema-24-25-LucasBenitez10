@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useBookingStore } from '@/store/bookingStore';
 import { useMovieStore } from '@/store/moviesStore';
+import { useUserStore } from '@/store/userStore';
 import { useRouter } from 'next/navigation';
 
 const SimpleTicketQR = ({ ticketCode }) => {
+  // Existing code unchanged...
   const [qrLoaded, setQrLoaded] = useState(false);
   const [qrError, setQrError] = useState(false);
   
@@ -76,14 +78,23 @@ const SimpleTicketQR = ({ ticketCode }) => {
 const BookingConfirmation = () => {
   const { selectedSeats, totalPrice, resetBooking, stopReservationTimeout } = useBookingStore();
   const { movieSelected } = useMovieStore();
+  const { clearGuestData, isGuestCheckout } = useUserStore(); // Add useUserStore hook
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
+    // Stop reservation timeout
     stopReservationTimeout();
     localStorage.removeItem('paymentInProgress');
+    
+    // Clear guest data after successful purchase
+    // Only clear if it was a guest checkout, preserve registered user data
+    if (isGuestCheckout) {
+      clearGuestData();
+      console.log("Guest data cleared after successful purchase");
+    }
     
     try {
       const savedTickets = localStorage.getItem('lastPurchasedTickets');
@@ -141,7 +152,7 @@ const BookingConfirmation = () => {
     } finally {
       setLoading(false);
     }
-  }, [stopReservationTimeout]);
+  }, [stopReservationTimeout, clearGuestData, isGuestCheckout]);
 
   const handleDownloadTickets = () => {
     alert('La funcionalidad de descarga de boletos estará disponible próximamente.');
@@ -152,6 +163,7 @@ const BookingConfirmation = () => {
     router.push('/peliculas');
   };
 
+  // Rest of the component remains unchanged...
   // Función para cambiar el ticket activo en el carousel
   const changeTicket = (direction) => {
     if (direction === 'next') {
@@ -223,6 +235,7 @@ const BookingConfirmation = () => {
               </div>
             </div>
 
+            {/* Rest of the component remains unchanged */}
             {/* Divider with film reel design */}
             <div className="flex items-center my-6">
               <div className="flex-grow h-px bg-gray-800"></div>
