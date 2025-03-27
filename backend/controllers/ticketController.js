@@ -3,6 +3,7 @@ const Ticket = require('../models/Ticket');
 const Screening = require('../models/Screening');
 const TicketType = require('../models/TicketType');
 const crypto = require('crypto');
+const emailService = require('../utils/emailService'); // Importamos el servicio de email
 
 /**
  * Genera un código único para el ticket
@@ -25,7 +26,10 @@ const purchaseTickets = async (ticketData) => {
     const { screeningId, customerInfo, seats, paymentMethod } = ticketData;
 
     // Verificar que la función exista y tenga asientos disponibles
-    const screening = await Screening.findById(screeningId);
+    const screening = await Screening.findById(screeningId)
+      .populate('movie')
+      .populate('room'); // Añadimos populate para tener datos completos para el email
+      
     if (!screening) throw new Error('Función no encontrada');
 
     if (screening.availableSeats < seats.length) {
@@ -122,11 +126,41 @@ const purchaseTickets = async (ticketData) => {
       { $inc: { availableSeats: -seats.length } }
     );
 
+    // NUEVA FUNCIONALIDAD: Envío de email de confirmación de forma asíncrona
+    sendConfirmationEmailAsync(customerInfo, tickets, screening);
+
     return tickets;
   } catch (error) {
     console.error('Error al comprar tickets:', error);
     throw error;
   }
+};
+
+/**
+ * Función auxiliar para enviar email de confirmación de forma asíncrona
+ * @param {Object} customerInfo - Información del cliente
+ * @param {Array} tickets - Array de tickets comprados
+ * @param {Object} screening - Información de la proyección
+ */
+const sendConfirmationEmailAsync = (customerInfo, tickets, screening) => {
+  // Usando setTimeout para no bloquear el hilo principal
+  setTimeout(async () => {
+    try {
+      const result = await emailService.sendTicketConfirmation({
+        customerInfo,
+        tickets,
+        screening
+      });
+      
+      if (result.success) {
+        console.log(`Email de confirmación enviado exitosamente a ${customerInfo.email}`);
+      } else {
+        console.error(`Error al enviar email de confirmación: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error al enviar email de confirmación:', error);
+    }
+  }, 0);
 };
 
 /**
@@ -224,7 +258,9 @@ const cancelTicket = async (ticketId) => {
     }
 
     // Obtener la función para verificar si aún es posible cancelar
-    const screening = await Screening.findById(ticket.screening);
+    const screening = await Screening.findById(ticket.screening)
+      .populate('movie')
+      .populate('room'); // Añadimos populate para tener datos completos para el email
 
     if (!screening) {
       throw new Error('Función no encontrada');
@@ -253,11 +289,40 @@ const cancelTicket = async (ticketId) => {
       { $inc: { availableSeats: 1 } }
     );
 
+    // NUEVA FUNCIONALIDAD: Enviar email de cancelación de forma asíncrona
+    sendCancellationEmailAsync(ticket.customerInfo, ticket, screening);
+
     return ticket;
   } catch (error) {
     console.error('Error al cancelar ticket:', error);
     throw error;
   }
+};
+
+/**
+ * Función auxiliar para enviar email de cancelación de forma asíncrona
+ * @param {Object} customerInfo - Información del cliente 
+ * @param {Object} ticket - Ticket cancelado
+ * @param {Object} screening - Información de la proyección
+ */
+const sendCancellationEmailAsync = (customerInfo, ticket, screening) => {
+  setTimeout(async () => {
+    try {
+      const result = await emailService.sendTicketCancellationEmail({
+        customerInfo,
+        ticket,
+        screening
+      });
+      
+      if (result.success) {
+        console.log(`Email de cancelación enviado exitosamente a ${customerInfo.email}`);
+      } else {
+        console.error(`Error al enviar email de cancelación: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error al enviar email de cancelación:', error);
+    }
+  }, 0);
 };
 
 /**
@@ -277,11 +342,39 @@ const cancelTicketsByScreeningId = async (screeningId) => {
       return { message: 'No hay entradas activas para esta sesión', modifiedCount: 0 };
     }
     
+    // Obtener información de la proyección para los emails
+    const screening = await Screening.findById(screeningId)
+      .populate('movie')
+      .populate('room');
+      
+    if (!screening) {
+      throw new Error('Proyección no encontrada');
+    }
+    
     // Actualizar todas las entradas a estado 'cancelled'
     const result = await Ticket.updateMany(
       { screening: screeningId, status: 'active' },
       { $set: { status: 'cancelled' } }
     );
+
+    // NUEVA FUNCIONALIDAD: Agrupar tickets por cliente para enviar emails
+    const customerTickets = {};
+    
+    tickets.forEach(ticket => {
+      const email = ticket.customerInfo.email;
+      if (!customerTickets[email]) {
+        customerTickets[email] = {
+          customerInfo: ticket.customerInfo,
+          tickets: []
+        };
+      }
+      customerTickets[email].tickets.push(ticket);
+    });
+    
+    // Enviar emails a cada cliente de forma asíncrona
+    Object.values(customerTickets).forEach(data => {
+      sendCancellationEmailAsync(data.customerInfo, data.tickets, screening);
+    });
     
     return {
       message: `${result.modifiedCount} entradas canceladas exitosamente`,
