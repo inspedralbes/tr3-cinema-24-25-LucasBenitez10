@@ -1,141 +1,192 @@
-// utils/emailService.js
 const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
+const Handlebars = require('handlebars');
+const QRCode = require('qrcode');
+
+// Configuración de transporte usando tus variables de entorno existentes
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: true, // true para puerto 465
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_APP_PASSWORD
+  }
+});
+
+// Función para cargar y compilar plantillas
+const loadTemplate = (templateName) => {
+  const filePath = path.join(__dirname, 'templates', `${templateName}.html`);
+  const template = fs.readFileSync(filePath, 'utf8');
+  return Handlebars.compile(template);
+};
+
+// Función para formatear la fecha en español
+const formatDate = (date) => {
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(date).toLocaleDateString('es-ES', options);
+};
+
+// Función mejorada para generar código QR como imagen base64
+const generateQRCode = async (data) => {
+  try {
+    // Asegurarse de que los datos no son demasiado grandes
+    const qrData = typeof data === 'string' ? data : JSON.stringify(data);
+    
+    // Generar el código QR con parámetros optimizados para emails
+    const qrCodeBase64 = await QRCode.toDataURL(qrData, {
+      width: 300,
+      margin: 2,
+      errorCorrectionLevel: 'H', // Mayor nivel de corrección de errores
+      color: {
+        dark: '#000000',   // Color de los puntos
+        light: '#ffffff'   // Color de fondo
+      }
+    });
+    
+    // Verificar que la cadena base64 comienza correctamente
+    if (!qrCodeBase64.startsWith('data:image/png;base64,')) {
+      console.warn('La cadena base64 del QR no tiene el formato esperado');
+    }
+    
+    return qrCodeBase64;
+  } catch (error) {
+    console.error('Error generando código QR:', error);
+    // Proporcionar una imagen de respaldo en caso de error
+    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAYAAAB5fY51AAAABmJLR0QA/wD/AP+gvaeTAAAEAklEQVR4nO3UQQ0AIRAEwcMJiEACSvh3UAk8NFmB9JiZOwDg1Bs9AAD+ZVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGg8QGdlgQAXf6fxQAAAABJRU5ErkJggg==';
+  }
+};
 
 /**
- * Servicio para envío de emails desde el backend
+ * Enviar email de confirmación de compra de tickets
+ * @param {Object} data - Datos para la plantilla
+ * @returns {Promise<Object>} Resultado del envío
  */
-class EmailService {
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: process.env.EMAIL_SECURE === 'true',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
+const sendTicketConfirmation = async (data) => {
+  try {
+    const { customerInfo, tickets, screening } = data;
+
+    // Calcular precio total
+    const totalPrice = tickets.reduce((sum, ticket) => sum + ticket.pricePaid, 0);
+
+    // Extraer el código base del ticket (sin el sufijo del asiento)
+    const masterTicketCode = tickets[0].ticketCode.split('-').slice(0, -1).join('-');
+
+    // Crear datos para el QR (simplificar los datos para evitar QR muy densos)
+    const qrData = JSON.stringify({
+      code: masterTicketCode,
+      movie: screening.movie.title,
+      date: formatDate(screening.date),
+      time: screening.startTime,
+      seats: tickets.map(t => `${t.seats.row}${t.seats.number}`).join(', ')
     });
-  }
 
-  /**
-   * Envía un email de confirmación de compra de tickets
-   * @param {Object} options - Datos necesarios para el email
-   * @param {Object} options.customerInfo - Información del cliente
-   * @param {Array} options.tickets - Array de tickets comprados
-   * @param {Object} options.screening - Información de la proyección
-   * @returns {Promise<Object>} Resultado del envío
-   */
-  async sendTicketConfirmation({ customerInfo, tickets, screening }) {
+    // Generar código QR como imagen base64
+    let qrCodeImage;
     try {
-      if (!customerInfo || !customerInfo.email) {
-        throw new Error('Email del cliente no proporcionado');
-      }
-
-      // Preparar datos para el email
-      const movieTitle = screening.movie.title;
-      const roomName = screening.room.name;
-      const screeningDate = new Date(screening.date);
-      const formattedDate = screeningDate.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      // Preparar información de asientos
-      const seatsList = tickets.map(ticket => 
-        `Fila ${ticket.seats.row}, Asiento ${ticket.seats.number}: ${ticket.ticketCode}`
-      ).join('\n');
-      
-      // Calcular precio total
-      const totalPrice = tickets.reduce((sum, ticket) => sum + ticket.pricePaid, 0);
-
-      // Contenido del email en texto plano (para clientes sin HTML)
-      const textContent = `
-¡Gracias por tu compra en CinemaBar!
-
-INFORMACIÓN DE TU COMPRA
-Película: ${movieTitle}
-Sala: ${roomName}
-Fecha: ${formattedDate}
-Hora: ${screening.startTime}
-
-TUS ENTRADAS:
-${seatsList}
-
-Total pagado: €${totalPrice.toFixed(2)}
-
-Presenta estos códigos en la entrada del cine para acceder a la sala.
-      `;
-
-      // Configuración del email
-      const mailOptions = {
-        from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
-        to: customerInfo.email,
-        subject: `Confirmación de entradas - ${movieTitle}`,
-        text: textContent,
-        attachments: []  // No enviamos adjuntos en esta versión
-      };
-
-      // Enviar el email
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log(`Email enviado a ${customerInfo.email}: ${result.messageId}`);
-      return { success: true, messageId: result.messageId };
-    } catch (error) {
-      console.error('Error al enviar email de confirmación:', error);
-      return { success: false, error: error.message };
+      qrCodeImage = await generateQRCode(qrData);
+      // Verificar la longitud de la cadena base64 (debug)
+      console.log(`QR generado: ${qrCodeImage.substring(0, 50)}... (longitud: ${qrCodeImage.length})`);
+    } catch (qrError) {
+      console.error('Error al generar QR, usando URL alternativa:', qrError);
+      // URL alternativa en caso de fallo (enlace a verificación de ticket)
+      qrCodeImage = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAYAAAB5fY51AAAABmJLR0QA/wD/AP+gvaeTAAAEAklEQVR4nO3UQQ0AIRAEwcMJiEACSvh3UAk8NFmB9JiZOwDg1Bs9AAD+ZVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGgYVgAaBgWABqGBYCGYQGg8QGdlgQAXf6fxQAAAABJRU5ErkJggg==`;
     }
+
+    // Preparar datos para la plantilla
+    const templateData = {
+      customerName: customerInfo.name,
+      movieTitle: screening.movie.title,
+      roomName: screening.room.name,
+      screeningDate: formatDate(screening.date),
+      screeningTime: screening.startTime,
+      tickets: tickets,
+      totalPrice: totalPrice.toFixed(2),
+      ticketUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/mi-cuenta/tickets`,
+      cinemaName: 'CinemaBar',
+      qrCodeImage: qrCodeImage,
+      masterTicketCode: masterTicketCode
+    };
+
+    // Compilar plantilla
+    const template = loadTemplate('confirmationEmail');
+    const htmlContent = template(templateData);
+
+    // Enviar email
+    const mailOptions = {
+      from: `"${process.env.EMAIL_SENDER_NAME || 'CinemaBar'}" <${process.env.EMAIL_USER}>`,
+      to: customerInfo.email,
+      subject: '✅ Confirmación de compra de entradas - CinemaBar',
+      html: htmlContent,
+      // Configuración adicional para clientes de correo que pueden bloquear imágenes incrustadas
+      attachDataUrls: true,
+      attachments: [{
+        filename: 'ticket-qr.png',
+        path: qrCodeImage,
+        cid: 'ticket-qr-code' // ID de contenido para referenciar desde el HTML
+      }]
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    return { success: true, messageId: info.messageId };
+
+  } catch (error) {
+    console.error('Error al enviar email de confirmación:', error);
+    return { success: false, error: error.message };
   }
+};
 
-  /**
-   * Envía un email de cancelación de tickets
-   * @param {Object} options - Datos necesarios para el email
-   * @param {Object} options.customerInfo - Información del cliente
-   * @param {Object} options.ticket - Ticket cancelado (o array de tickets)
-   * @param {Object} options.screening - Información de la proyección
-   * @returns {Promise<Object>} Resultado del envío
-   */
-  async sendTicketCancellationEmail({ customerInfo, ticket, screening }) {
-    try {
-      if (!customerInfo || !customerInfo.email) {
-        throw new Error('Email del cliente no proporcionado');
-      }
+/**
+ * Enviar email de cancelación de tickets
+ * @param {Object} data - Datos para la plantilla
+ * @returns {Promise<Object>} Resultado del envío
+ */
+const sendTicketCancellationEmail = async (data) => {
+  try {
+    const { customerInfo, ticket, screening } = data;
 
-      // Determinar si es un ticket único o varios
-      const tickets = Array.isArray(ticket) ? ticket : [ticket];
-      const ticketCodes = tickets.map(t => t.ticketCode).join(', ');
-      
-      // Contenido del email en texto plano
-      const textContent = `
-CONFIRMACIÓN DE CANCELACIÓN
+    // Determinar si es cancelación individual o múltiple
+    const tickets = Array.isArray(ticket) ? ticket : [ticket];
 
-Hola ${customerInfo.name || customerInfo.email},
+    // Calcular precio total
+    const totalPrice = tickets.reduce((sum, ticket) => sum + ticket.pricePaid, 0);
 
-Te confirmamos que ${tickets.length > 1 ? 'tus entradas han' : 'tu entrada ha'} sido cancelada exitosamente.
+    // Preparar datos para la plantilla
+    const templateData = {
+      customerName: customerInfo.name,
+      movieTitle: screening.movie.title,
+      roomName: screening.room.name,
+      screeningDate: formatDate(screening.date),
+      screeningTime: screening.startTime,
+      totalPrice: totalPrice.toFixed(2),
+      carteleraUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/peliculas`,
+      isCustomerCancellation: true,
+      cinemaName: 'CinemaBar'
+    };
 
-Película: ${screening.movie.title}
-Sala: ${screening.room.name}
-Código(s): ${ticketCodes}
+    // Compilar plantilla
+    const template = loadTemplate('cancellationEmail');
+    const htmlContent = template(templateData);
 
-El reembolso será procesado en los próximos 5-7 días hábiles.
-      `;
+    // Enviar email
+    const mailOptions = {
+      from: `"${process.env.EMAIL_SENDER_NAME || 'CinemaBar'}" <${process.env.EMAIL_USER}>`,
+      to: customerInfo.email,
+      subject: '❌ Cancelación de entradas - CinemaBar',
+      html: htmlContent
+    };
 
-      // Configuración del email
-      const mailOptions = {
-        from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
-        to: customerInfo.email,
-        subject: `Cancelación de ${tickets.length > 1 ? 'entradas' : 'entrada'} - ${screening.movie.title}`,
-        text: textContent
-      };
+    const info = await transporter.sendMail(mailOptions);
+    return { success: true, messageId: info.messageId };
 
-      // Enviar el email
-      const result = await this.transporter.sendMail(mailOptions);
-      return { success: true, messageId: result.messageId };
-    } catch (error) {
-      console.error('Error al enviar email de cancelación:', error);
-      return { success: false, error: error.message };
-    }
+  } catch (error) {
+    console.error('Error al enviar email de cancelación:', error);
+    return { success: false, error: error.message };
   }
-}
+};
 
-module.exports = new EmailService();
+module.exports = {
+  sendTicketConfirmation,
+  sendTicketCancellationEmail
+};
