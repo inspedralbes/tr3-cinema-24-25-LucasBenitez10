@@ -9,6 +9,7 @@ export const fetchMovies = async () => {
   });
   console.log("Respuestas des tmdb.js: " + response);
 
+  console.log("peliculas"+response)
   if(response){
     return response.json();
   }else{

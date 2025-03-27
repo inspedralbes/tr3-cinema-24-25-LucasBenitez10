@@ -4,7 +4,7 @@ import { useRoomStore } from "@/store/roomStore"
 import { useScreeningStore } from "@/store/screeningStore"
 
 export default function DropdownMovies() {
-    const { movies, assignMovie, movieSelected } = useMovieStore()
+    const {fetchMovies, movies, assignMovie, movieSelected } = useMovieStore()
     const { fetchRooms, rooms, assignRoom, roomSelected } = useRoomStore();
     const { addScreening } = useScreeningStore();
     const [selectedTime, setSelectedTime] = useState("16:00")
@@ -74,19 +74,22 @@ export default function DropdownMovies() {
 
     const handleSelectedRoom = (e) => {
         const selectedRoomId = e.target.selectedIndex;
-        // Buscar el objeto completo de room basado en el ID seleccionado
-        const selectedRoomObj = rooms[selectedRoomId];
-        
-        setSelectedRoom(selectedRoomObj);
-        assignRoom(selectedRoomObj);
+        // Verificar que rooms es un array y tiene elementos
+        if (Array.isArray(rooms) && rooms.length > selectedRoomId) {
+            const selectedRoomObj = rooms[selectedRoomId];
+            setSelectedRoom(selectedRoomObj);
+            assignRoom(selectedRoomObj);
+        }
     }
 
     const handleSelectedMovie = (e) => {
         const selectedIndex = e.target.selectedIndex;
-        const selectedMovieObj = movies[selectedIndex];
-        
-        setSelectedMovie(selectedMovieObj);
-        assignMovie(selectedMovieObj);
+        // Verificar que movies es un array y tiene elementos
+        if (Array.isArray(movies) && movies.length > selectedIndex) {
+            const selectedMovieObj = movies[selectedIndex];
+            setSelectedMovie(selectedMovieObj);
+            assignMovie(selectedMovieObj);
+        }
     }
 
     // Manejar cambios en el tiempo
@@ -101,10 +104,11 @@ export default function DropdownMovies() {
 
     useEffect(() => {
         fetchRooms();
+        fetchMovies();
     }, [])
 
     useEffect(() => {
-        if (rooms.length > 0 && !selectedRoom) {
+        if (Array.isArray(rooms) && rooms.length > 0 && !selectedRoom) {
             setSelectedRoom(rooms[0]);
             assignRoom(rooms[0]);
         }
@@ -112,7 +116,7 @@ export default function DropdownMovies() {
 
     // Establecer la película inicial si hay películas disponibles
     useEffect(() => {
-        if (movies.length > 0 && !selectedMovie) {
+        if (Array.isArray(movies) && movies.length > 0 && !selectedMovie) {
             setSelectedMovie(movies[0]);
             assignMovie(movies[0]);
         }
@@ -151,14 +155,14 @@ export default function DropdownMovies() {
                         onChange={handleSelectedMovie}
                         value={selectedMovie?._id || ""}
                     >
-                        {movies.map((movie) => (
+                        {Array.isArray(movies) ? movies.map((movie) => (
                             <option
                                 key={movie._id} 
                                 value={movie._id}
                             >
                                 {movie.title}
                             </option>
-                        ))}
+                        )) : <option>Cargando películas...</option>}
                     </select>
                 </div>
 
@@ -198,14 +202,14 @@ export default function DropdownMovies() {
                        onChange={handleSelectedRoom}
                        value={selectedRoom?._id || ""}
                     >
-                        {rooms.map((room) => (
+                        {Array.isArray(rooms) ? rooms.map((room) => (
                             <option 
                                 key={room._id} 
                                 value={room._id}
                                 >
                                     {room.name}
                             </option>
-                        ))}
+                        )) : <option>Cargando salas...</option>}
                     </select>
                 </div>
                 

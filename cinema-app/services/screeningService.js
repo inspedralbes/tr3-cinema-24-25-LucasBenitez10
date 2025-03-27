@@ -35,6 +35,7 @@ export const createScreening = async (screeningData) => {
       }
   
       const data = await response.json();
+      console.log("Screenings: ")
     //   console.log(data[0].movie)
       return data.data;
     } catch (error) {
