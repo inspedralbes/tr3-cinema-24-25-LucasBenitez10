@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const SeatStatus = require('../models/seatStatus'); 
+const SeatStatus = require('../models/SeatStatus'); 
 const Ticket = require('../models/Ticket');
 
 router.post('/mark-occupied', async (req, res) => {

@@ -1,7 +1,7 @@
 const Ticket = require('../models/Ticket');
 const Screening = require('../models/Screening');
 const TicketType = require('../models/TicketType');
-const SeatStatus = require('../models/seatStatus'); // Importamos el modelo SeatStatus
+const SeatStatus = require('../models/SeatStatus'); // Importamos el modelo SeatStatus
 const crypto = require('crypto');
 const emailService = require('../utils/emailService');
 const mongoose = require('mongoose');
