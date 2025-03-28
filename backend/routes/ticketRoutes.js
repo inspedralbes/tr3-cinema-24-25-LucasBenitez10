@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const ticketController = require('../controllers/ticketController');
+const mongoose = require('mongoose');
+
 
 /**
  * @route POST /api/tickets
@@ -199,6 +201,30 @@ router.delete('/delete-by-screening/:screeningId', async (req, res) => {
       success: false,
       error: error.message 
     });
+  }
+});
+
+/**
+ * @route GET /api/tickets/:id
+ * @desc Obtener un ticket por su ID
+ * @access Private (debería tener autenticación de usuario)
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    const ticket = await ticketController.getTicketById(req.params.id);
+    res.json(ticket);
+  } catch (error) {
+    console.error('Error en ruta de obtener ticket por ID:', error);
+    
+    if (error.message === 'ID de ticket inválido') {
+      return res.status(400).json({ error: error.message });
+    }
+    
+    if (error.message === 'Ticket no encontrado') {
+      return res.status(404).json({ error: error.message });
+    }
+    
+    res.status(500).json({ error: error.message });
   }
 });
 

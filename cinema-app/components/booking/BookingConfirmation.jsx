@@ -160,7 +160,7 @@ const BookingConfirmation = () => {
 
   const handleBackToCatalog = () => {
     resetBooking();
-    router.push('/peliculas');
+    router.push('/');
   };
 
   // Rest of the component remains unchanged...

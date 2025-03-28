@@ -1,11 +1,8 @@
-// routes/seatStatusRoutes.js
 const express = require('express');
 const router = express.Router();
-const SeatStatus = require('../models/seatStatus'); // Asegúrate de que esta ruta coincida con el nombre real del archivo
+const SeatStatus = require('../models/seatStatus'); 
 const Ticket = require('../models/Ticket');
 
-// IMPORTANTE: Cambia el orden de las rutas - Las rutas específicas van ANTES de las rutas con parámetros
-// Marcar asientos como ocupados - ESTA RUTA DEBE IR ANTES DE '/:screeningId'
 router.post('/mark-occupied', async (req, res) => {
   try {
     const { screeningId, seatIds } = req.body;
@@ -148,38 +145,100 @@ router.get('/:screeningId', async (req, res) => {
     let seatStatuses = await SeatStatus.find({ screeningId });
     console.log(`Encontrados ${seatStatuses.length} estados de asientos`);
     
-    // Si no hay registros de status, buscar en tickets para inicializar
+    // Si no hay registros de status o son pocos, sincronizar con los tickets activos
     if (seatStatuses.length === 0) {
-      console.log(`No hay registros de SeatStatus, buscando en tickets...`);
-      const tickets = await Ticket.find({ screening: screeningId });
-      console.log(`Encontrados ${tickets.length} tickets para la proyección`);
+      console.log(`No hay registros de SeatStatus, sincronizando desde tickets...`);
       
-      // Crear registros de estado para asientos ocupados desde tickets
-      if (tickets.length > 0) {
-        // Extraer todos los asientos de todos los tickets
+      // Buscar todos los tickets ACTIVOS para esta proyección
+      const activeTickets = await Ticket.find({ 
+        screening: screeningId,
+        status: 'active' // Solo considerar tickets activos
+      });
+      
+      console.log(`Encontrados ${activeTickets.length} tickets activos para la proyección`);
+      
+      // Crear registros de estado para asientos ocupados desde tickets activos
+      if (activeTickets.length > 0) {
+        // Extraer todos los asientos de todos los tickets activos
         const seatStatusDocs = [];
         
-        tickets.forEach(ticket => {
+        activeTickets.forEach(ticket => {
           // Los tickets pueden tener múltiples asientos
-          if (ticket.seats && Array.isArray(ticket.seats)) {
-            ticket.seats.forEach(seat => {
-              // Construir el ID del asiento en formato "A1", "B5", etc.
-              const seatId = `${seat.row}${seat.number}`;
-              
-              seatStatusDocs.push({
-                screeningId,
-                seatId,
-                status: 'occupied'
-              });
+          if (ticket.seats) {
+            // Construir el ID del asiento en formato "A1", "B5", etc.
+            const seatId = `${ticket.seats.row}${ticket.seats.number}`;
+            
+            seatStatusDocs.push({
+              screeningId,
+              seatId,
+              status: 'occupied',
+              ticketId: ticket._id
             });
           }
         });
         
-        console.log(`Creando ${seatStatusDocs.length} registros de SeatStatus`);
+        console.log(`Creando ${seatStatusDocs.length} registros de SeatStatus para tickets activos`);
         
         if (seatStatusDocs.length > 0) {
-          await SeatStatus.insertMany(seatStatusDocs);
+          // Usar bulkWrite para hacer upserts de todos los asientos
+          const bulkOps = seatStatusDocs.map(seatDoc => ({
+            updateOne: {
+              filter: { screeningId, seatId: seatDoc.seatId },
+              update: { $set: seatDoc },
+              upsert: true
+            }
+          }));
+          
+          await SeatStatus.bulkWrite(bulkOps);
+          
+          // Obtener los estados actualizados
           seatStatuses = await SeatStatus.find({ screeningId });
+        }
+      }
+    } else {
+      // MEJORA: Verificar si hay algún asiento ocupado que pertenezca a un ticket cancelado
+      const seatIdsToCheck = seatStatuses
+        .filter(seat => seat.status === 'occupied' && seat.ticketId)
+        .map(seat => ({ 
+          seatId: seat.seatId, 
+          ticketId: seat.ticketId 
+        }));
+        
+      if (seatIdsToCheck.length > 0) {
+        console.log(`Verificando ${seatIdsToCheck.length} asientos ocupados contra tickets cancelados...`);
+        
+        // Obtener los IDs de tickets
+        const ticketIds = seatIdsToCheck.map(item => item.ticketId);
+        
+        // Buscar tickets cancelados
+        const cancelledTickets = await Ticket.find({
+          _id: { $in: ticketIds },
+          status: 'cancelled'
+        });
+        
+        if (cancelledTickets.length > 0) {
+          console.log(`Encontrados ${cancelledTickets.length} tickets cancelados que tienen asientos marcados como ocupados`);
+          
+          // Crear un conjunto de IDs de tickets cancelados para búsqueda rápida
+          const cancelledTicketIds = new Set(cancelledTickets.map(t => t._id.toString()));
+          
+          // Filtrar los asientos que deben liberarse (los que pertenecen a tickets cancelados)
+          const seatsToFree = seatIdsToCheck
+            .filter(item => cancelledTicketIds.has(item.ticketId.toString()))
+            .map(item => item.seatId);
+          
+          if (seatsToFree.length > 0) {
+            console.log(`Liberando ${seatsToFree.length} asientos de tickets cancelados`);
+            
+            // Actualizar estos asientos a "free"
+            await SeatStatus.updateMany(
+              { screeningId, seatId: { $in: seatsToFree } },
+              { $set: { status: 'free', ticketId: null } }
+            );
+            
+            // Actualizar la lista de estados de asientos
+            seatStatuses = await SeatStatus.find({ screeningId });
+          }
         }
       }
     }

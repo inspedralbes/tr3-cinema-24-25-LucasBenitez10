@@ -16,7 +16,7 @@ export default function useAuth() {
                 if (role === 'admin') {
                     router.push('/administracion')
                 } else if (role === 'customer') {
-                    router.push('/peliculas')
+                    router.push('/')
                 }
             }
             return response.user

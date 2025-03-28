@@ -6,6 +6,7 @@ const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const dotenv = require('dotenv');
+const { loadUser } = require('./middleware/authMiddleware');
 
 dotenv.config();
 
@@ -18,15 +19,12 @@ connectDB();
 
 app.post('/api/payments/webhook', express.raw({type: 'application/json'}), require('./routes/paymentRoutes'));
 
-
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
     origin: 'http://localhost:3000',
     credentials: true 
-  }));
-
-
+}));
 
 app.use(
     session({
@@ -44,10 +42,12 @@ app.use(
         sameSite: 'lax' // Protección contra CSRF
       }
     })
-  );
+);
 
+// Middleware para cargar usuario en cada solicitud (opcional)
+app.use(loadUser);
 
-  
+// Rutas API
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/movies', require('./routes/movieRoutes'));
 app.use('/api/rooms', require('./routes/roomRoutes'));
@@ -56,12 +56,9 @@ app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/seat-status', require('./routes/seatStatusRoutes'));
 app.use('/api/ticket-types', require('./routes/ticketTypeRoutes'));
+app.use('/api/users', require('./routes/userRoutes')); // Nueva ruta de usuarios
 
-
-
-
-
-
+// Middleware de manejo de errores
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({
@@ -69,8 +66,7 @@ app.use((err, req, res, next) => {
       error: err.message,
       stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack
     });
-  });
-
+});
 
 const PORT = 4000;
 app.listen(PORT, function () {

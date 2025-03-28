@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
     age: { type: Number, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    phone: { type: String, default: '' }, // Nuevo campo para el teléfono
     role: {type: String, enum: ['admin', 'customer'], default: 'customer'}
 }, {
     timestamps: true

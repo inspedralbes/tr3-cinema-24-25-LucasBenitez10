@@ -184,52 +184,6 @@ export default function ScreeningStatistics() {
                             </div>
                         </div>
                         
-                        <div className="flex items-center gap-2">
-                            <label htmlFor="refresh-interval" className="text-gray-400 text-sm">Actualizar:</label>
-                            <div className="relative flex-1 min-w-[120px]">
-                                <select
-                                    id="refresh-interval"
-                                    value={refreshInterval}
-                                    onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                                    className="bg-gray-800 text-white border border-gray-700 rounded-lg px-4 py-2 pr-10 appearance-none w-full focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
-                                >
-                                    <option value="10">Cada 10s</option>
-                                    <option value="30">Cada 30s</option>
-                                    <option value="60">Cada minuto</option>
-                                    <option value="300">Cada 5 minutos</option>
-                                </select>
-                                <div className="absolute right-0 top-0 h-full flex items-center pr-3 pointer-events-none">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                            
-                            <button
-                                onClick={() => setAutoRefresh(!autoRefresh)}
-                                className={`p-2 rounded-lg border ${
-                                    autoRefresh 
-                                    ? 'bg-red-600 border-red-700 text-white' 
-                                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700'
-                                }`}
-                                title={autoRefresh ? 'Desactivar actualización automática' : 'Activar actualización automática'}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                            </button>
-                            
-                            <button
-                                onClick={() => loadStatistics(selectedScreeningId)}
-                                disabled={loading}
-                                className="p-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700"
-                                title="Actualizar ahora"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -298,8 +252,8 @@ export default function ScreeningStatistics() {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-400">Estado:</span>
-                                        <span className={`font-medium ${screeningStats.status === 'active' ? 'text-green-500' : 'text-red-500'}`}>
-                                            {screeningStats.status === 'active' ? 'Activa' : 'Cancelada'}
+                                        <span className={`font-medium ${screeningStats.status === 'scheduled' ? 'text-green-500' : 'text-red-500'}`}>
+                                            {screeningStats.status === 'scheduled' ? 'Activa' : 'Cancelada'}
                                         </span>
                                     </div>
                                 </div>

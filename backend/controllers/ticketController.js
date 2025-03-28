@@ -2,8 +2,11 @@
 const Ticket = require('../models/Ticket');
 const Screening = require('../models/Screening');
 const TicketType = require('../models/TicketType');
+const SeatStatus = require('../models/seatStatus'); // Importamos el modelo SeatStatus
 const crypto = require('crypto');
-const emailService = require('../utils/emailService'); // Importamos el servicio de email
+const emailService = require('../utils/emailService');
+const mongoose = require('mongoose');
+
 
 /**
  * Genera un código único para el ticket
@@ -50,10 +53,22 @@ const purchaseTickets = async (ticketData) => {
       const existingTicket = await Ticket.findOne({
         screening: screeningId,
         'seats.row': seat.row,
-        'seats.number': seat.number
+        'seats.number': seat.number,
+        status: 'active' // Solo verificar tickets activos
       });
 
       if (existingTicket) {
+        throw new Error(`El asiento ${seatIdentifier} ya está ocupado`);
+      }
+
+      // Verificar también en la tabla SeatStatus
+      const existingSeatStatus = await SeatStatus.findOne({
+        screeningId,
+        seatId: seatIdentifier,
+        status: 'occupied'
+      });
+
+      if (existingSeatStatus) {
         throw new Error(`El asiento ${seatIdentifier} ya está ocupado`);
       }
 
@@ -118,6 +133,19 @@ const purchaseTickets = async (ticketData) => {
       // Crear el ticket en la base de datos
       const createdTicket = await Ticket.create(ticketIndividual);
       tickets.push(createdTicket);
+
+      // Marcar el asiento como ocupado en SeatStatus
+      await SeatStatus.findOneAndUpdate(
+        { screeningId, seatId: seatIdentifier },
+        { 
+          $set: { 
+            status: 'occupied',
+            reservationExpires: null,
+            ticketId: createdTicket._id // Referencia al ticket que ocupa este asiento
+          }
+        },
+        { upsert: true }
+      );
     }
 
     // Actualizar asientos disponibles en la función
@@ -289,6 +317,27 @@ const cancelTicket = async (ticketId) => {
       { $inc: { availableSeats: 1 } }
     );
 
+    // NUEVA FUNCIONALIDAD: Actualizar el estado del asiento en SeatStatus
+    const seatId = `${ticket.seats.row}${ticket.seats.number}`;
+    
+    // Marcar el asiento como libre en la tabla de SeatStatus
+    await SeatStatus.findOneAndUpdate(
+      { 
+        screeningId: ticket.screening.toString(),
+        seatId: seatId,
+        status: 'occupied'
+      },
+      { 
+        $set: { 
+          status: 'free',
+          ticketId: null
+        } 
+      },
+      { new: true }
+    );
+
+    console.log(`Asiento ${seatId} marcado como libre tras cancelación de ticket`);
+
     // NUEVA FUNCIONALIDAD: Enviar email de cancelación de forma asíncrona
     sendCancellationEmailAsync(ticket.customerInfo, ticket, screening);
 
@@ -357,6 +406,24 @@ const cancelTicketsByScreeningId = async (screeningId) => {
       { $set: { status: 'cancelled' } }
     );
 
+    // NUEVA FUNCIONALIDAD: Actualizar todos los asientos a "free" en SeatStatus
+    // Primero recolectamos todos los IDs de asientos de los tickets cancelados
+    const seatsToFree = tickets.map(ticket => `${ticket.seats.row}${ticket.seats.number}`);
+    
+    if (seatsToFree.length > 0) {
+      // Actualizar todos estos asientos a estado "free" en la tabla SeatStatus
+      await SeatStatus.updateMany(
+        { 
+          screeningId: screeningId.toString(),
+          seatId: { $in: seatsToFree },
+          status: 'occupied'
+        },
+        { $set: { status: 'free', ticketId: null } }
+      );
+      
+      console.log(`${seatsToFree.length} asientos marcados como libres tras cancelación masiva`);
+    }
+
     // NUEVA FUNCIONALIDAD: Agrupar tickets por cliente para enviar emails
     const customerTickets = {};
     
@@ -396,6 +463,9 @@ const deleteTicketsByScreeningId = async (screeningId) => {
     // Eliminar todas las entradas para esta sesión
     const result = await Ticket.deleteMany({ screening: screeningId });
     
+    // NUEVA FUNCIONALIDAD: Eliminar también todos los registros de SeatStatus
+    await SeatStatus.deleteMany({ screeningId: screeningId.toString() });
+    
     return {
       message: `${result.deletedCount} entradas eliminadas exitosamente`,
       deletedCount: result.deletedCount
@@ -406,6 +476,40 @@ const deleteTicketsByScreeningId = async (screeningId) => {
   }
 };
 
+/**
+ * Obtiene un ticket por su ID
+ * @param {String} ticketId - ID del ticket
+ * @returns {Promise<Object>} Ticket encontrado
+ */
+const getTicketById = async (ticketId) => {
+  try {
+    // Verificar que el ID sea válido
+    if (!mongoose.Types.ObjectId.isValid(ticketId)) {
+      throw new Error('ID de ticket inválido');
+    }
+    
+    const ticket = await Ticket.findById(ticketId)
+      .populate({
+        path: 'screening',
+        populate: {
+          path: 'movie room',
+          select: 'title name poster_path startTime date'
+        }
+      })
+      .populate('ticketType');
+    
+    if (!ticket) {
+      throw new Error('Ticket no encontrado');
+    }
+    
+    return ticket;
+  } catch (error) {
+    console.error('Error al obtener ticket por ID:', error);
+    throw error;
+  }
+};
+
+
 module.exports = {
   purchaseTickets,
   getTicketsByScreening,
@@ -413,5 +517,6 @@ module.exports = {
   verifyTicket,
   cancelTicket,
   cancelTicketsByScreeningId,
-  deleteTicketsByScreeningId
+  deleteTicketsByScreeningId,
+  getTicketById 
 };

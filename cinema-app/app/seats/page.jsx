@@ -45,7 +45,7 @@ function Seats() {
     
     // Opcional: redirigir después de un tiempo
     setTimeout(() => {
-      router.push('/peliculas'); // O a donde prefieras redirigir
+      router.push('/'); // O a donde prefieras redirigir
     }, 5000);
   };
 

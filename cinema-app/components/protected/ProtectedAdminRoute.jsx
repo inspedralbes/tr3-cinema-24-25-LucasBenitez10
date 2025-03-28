@@ -22,7 +22,7 @@ export default function ProtectedAdminRoute({ children }) {
       // Verifica si el usuario tiene rol de admin
       if (user.role !== 'admin') {
         console.log("Usuario no es admin, redirigiendo a películas");
-        router.push('/peliculas');
+        router.push('/');
         return;
       }
       

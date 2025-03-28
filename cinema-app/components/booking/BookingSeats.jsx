@@ -99,7 +99,7 @@ export default function BookingSeats() {
       setSeatLayout(prevLayout => ({
         rows: rowLetters,
         seatsPerRow: seatsPerRow,
-        occupiedSeats: prevLayout.occupiedSeats // Mantener los asientos ocupados si ya fueron cargados
+        occupiedSeats: prevLayout.occupiedSeats 
       }));
     } 
     // Si availableSeats es un objeto con una estructura definida
