@@ -21,9 +21,7 @@ export default function ScreeningStatistics() {
         setError(null);
         
         try {
-            console.log("Cargando estadísticas para sesión:", screeningId);
             const stats = await getScreeningStatistics(screeningId);
-            console.log("Estadísticas obtenidas:", stats);
             setScreeningStats(stats);
             setLastUpdated(new Date());
         } catch (error) {

@@ -7,7 +7,7 @@ router.post('/mark-occupied', async (req, res) => {
   try {
     const { screeningId, seatIds } = req.body;
     
-    console.log('Solicitud para marcar asientos como ocupados:', { screeningId, seatIds });
+    
     
     if (!screeningId || !seatIds || !Array.isArray(seatIds) || seatIds.length === 0) {
       return res.status(400).json({ 
@@ -39,10 +39,10 @@ router.post('/mark-occupied', async (req, res) => {
       }
     }));
     
-    console.log(`Intentando actualizar ${bulkOps.length} asientos a estado 'occupied'`);
+    
     
     const result = await SeatStatus.bulkWrite(bulkOps);
-    console.log('Resultado de la actualización:', result);
+   
     
     res.json({ 
       success: true, 
@@ -139,15 +139,15 @@ router.get('/:screeningId', async (req, res) => {
       return res.status(400).json({ message: 'screeningId es requerido' });
     }
     
-    console.log(`Buscando asientos para la proyección: ${screeningId}`);
+    
     
     // Buscar estados de asientos existentes
     let seatStatuses = await SeatStatus.find({ screeningId });
-    console.log(`Encontrados ${seatStatuses.length} estados de asientos`);
+    
     
     // Si no hay registros de status o son pocos, sincronizar con los tickets activos
     if (seatStatuses.length === 0) {
-      console.log(`No hay registros de SeatStatus, sincronizando desde tickets...`);
+      
       
       // Buscar todos los tickets ACTIVOS para esta proyección
       const activeTickets = await Ticket.find({ 
@@ -155,7 +155,7 @@ router.get('/:screeningId', async (req, res) => {
         status: 'active' // Solo considerar tickets activos
       });
       
-      console.log(`Encontrados ${activeTickets.length} tickets activos para la proyección`);
+      
       
       // Crear registros de estado para asientos ocupados desde tickets activos
       if (activeTickets.length > 0) {
@@ -177,7 +177,7 @@ router.get('/:screeningId', async (req, res) => {
           }
         });
         
-        console.log(`Creando ${seatStatusDocs.length} registros de SeatStatus para tickets activos`);
+       
         
         if (seatStatusDocs.length > 0) {
           // Usar bulkWrite para hacer upserts de todos los asientos
@@ -205,7 +205,7 @@ router.get('/:screeningId', async (req, res) => {
         }));
         
       if (seatIdsToCheck.length > 0) {
-        console.log(`Verificando ${seatIdsToCheck.length} asientos ocupados contra tickets cancelados...`);
+        
         
         // Obtener los IDs de tickets
         const ticketIds = seatIdsToCheck.map(item => item.ticketId);
@@ -217,7 +217,7 @@ router.get('/:screeningId', async (req, res) => {
         });
         
         if (cancelledTickets.length > 0) {
-          console.log(`Encontrados ${cancelledTickets.length} tickets cancelados que tienen asientos marcados como ocupados`);
+         
           
           // Crear un conjunto de IDs de tickets cancelados para búsqueda rápida
           const cancelledTicketIds = new Set(cancelledTickets.map(t => t._id.toString()));
@@ -228,7 +228,7 @@ router.get('/:screeningId', async (req, res) => {
             .map(item => item.seatId);
           
           if (seatsToFree.length > 0) {
-            console.log(`Liberando ${seatsToFree.length} asientos de tickets cancelados`);
+            
             
             // Actualizar estos asientos a "free"
             await SeatStatus.updateMany(

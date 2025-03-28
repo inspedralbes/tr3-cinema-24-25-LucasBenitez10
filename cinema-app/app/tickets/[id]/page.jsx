@@ -25,7 +25,6 @@ export default function TicketDetail() {
       }
 
       try {
-        // Obtener el ticket por su ID
         const response = await fetch(`${API_URL}/api/tickets/${params.id}`, {
           credentials: 'include',
           headers: {
@@ -38,7 +37,6 @@ export default function TicketDetail() {
         }
 
         const data = await response.json();
-        console.log('Ticket obtenido:', data);
         setTicket(data);
       } catch (err) {
         console.error('Error al obtener detalles de la entrada:', err);
@@ -66,12 +64,10 @@ export default function TicketDetail() {
   const formatTime = (timeString) => {
     if (!timeString) return 'Hora no disponible';
     
-    // Si ya tiene formato hh:mm, retornarlo como está
     if (timeString.includes(':')) {
       return `${timeString} h`;
     }
     
-    // Intentar parsear como Date
     try {
       const date = new Date(timeString);
       return date.toLocaleTimeString('es-ES', {
@@ -102,7 +98,6 @@ export default function TicketDetail() {
   };
 
   const handleDownload = () => {
-    // Crear un elemento canvas para la conversión
     const canvas = document.createElement('canvas');
     const svg = document.getElementById('ticket-qr');
     const data = new XMLSerializer().serializeToString(svg);
@@ -121,7 +116,6 @@ export default function TicketDetail() {
       const imgURI = canvas.toDataURL('image/png')
         .replace('image/png', 'image/octet-stream');
 
-      // Trigger descarga
       const a = document.createElement('a');
       a.href = imgURI;
       a.download = `ticket-${ticket.ticketCode || ticket._id}.png`;
@@ -325,7 +319,6 @@ export default function TicketDetail() {
                   )}
                 </div>
 
-                {/* Instrucciones para la entrada */}
                 <div className="mt-8 p-4 bg-gray-50 rounded border border-gray-200">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Instrucciones</h3>
                   <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
@@ -336,7 +329,6 @@ export default function TicketDetail() {
                   </ul>
                 </div>
 
-                {/* Opciones de cancelación - Solo mostrar si está activo */}
                 {ticket.status === 'active' && (
                   <div className="mt-6 text-right print:hidden">
                     <Link 

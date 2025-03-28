@@ -31,7 +31,7 @@ export default function RegisterForm() {
 
         try {
             const res = await handleRegister(userData);
-            console.log('Registration result:', res);
+        
             setSuccess(true);
         } catch (error) {
             console.error('Registration error:', error);

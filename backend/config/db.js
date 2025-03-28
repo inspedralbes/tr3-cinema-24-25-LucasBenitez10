@@ -17,14 +17,12 @@ const connectDB = async () => {
         
         // Ejecutar sincronización de películas (solo una vez al iniciar)
         try {
-            console.log('Iniciando sincronización inicial de películas...');
 
             // Importar el controlador de películas
             const movieController = require('../controllers/movieController');
 
             // Ejecutar sincronización (solo 2 páginas para que sea rápido)
             const result = await movieController.syncMovies(2);
-            console.log('Sincronización inicial completada:', result);
         } catch (syncError) {
             console.error('Error en sincronización inicial:', syncError);
             // No lanzamos el error para que la aplicación continúe funcionando

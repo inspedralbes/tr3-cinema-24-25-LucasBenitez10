@@ -14,20 +14,17 @@ export default function ProtectedAdminRoute({ children }) {
     const timer = setTimeout(() => {
       // Verifica si hay un usuario en el store
       if (!user || !user.email) {
-        console.log("No hay usuario, redirigiendo a login");
         router.push('/login');
         return;
       }
       
       // Verifica si el usuario tiene rol de admin
       if (user.role !== 'admin') {
-        console.log("Usuario no es admin, redirigiendo a películas");
         router.push('/');
         return;
       }
       
       // Usuario autenticado y es admin
-      console.log("Usuario autenticado como admin");
       setLoading(false);
     }, 300); // Un pequeño delay para que localStorage se cargue
     

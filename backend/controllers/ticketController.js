@@ -1,4 +1,3 @@
-// controllers/ticketController.js
 const Ticket = require('../models/Ticket');
 const Screening = require('../models/Screening');
 const TicketType = require('../models/TicketType');
@@ -128,7 +127,6 @@ const purchaseTickets = async (ticketData) => {
         ticketIndividual.user = ticketData.user;
       }
 
-      console.log('Creando ticket con datos:', ticketIndividual);
 
       // Crear el ticket en la base de datos
       const createdTicket = await Ticket.create(ticketIndividual);
@@ -181,7 +179,6 @@ const sendConfirmationEmailAsync = (customerInfo, tickets, screening) => {
       });
       
       if (result.success) {
-        console.log(`Email de confirmación enviado exitosamente a ${customerInfo.email}`);
       } else {
         console.error(`Error al enviar email de confirmación: ${result.error}`);
       }
@@ -336,9 +333,6 @@ const cancelTicket = async (ticketId) => {
       { new: true }
     );
 
-    console.log(`Asiento ${seatId} marcado como libre tras cancelación de ticket`);
-
-    // NUEVA FUNCIONALIDAD: Enviar email de cancelación de forma asíncrona
     sendCancellationEmailAsync(ticket.customerInfo, ticket, screening);
 
     return ticket;
@@ -364,7 +358,6 @@ const sendCancellationEmailAsync = (customerInfo, ticket, screening) => {
       });
       
       if (result.success) {
-        console.log(`Email de cancelación enviado exitosamente a ${customerInfo.email}`);
       } else {
         console.error(`Error al enviar email de cancelación: ${result.error}`);
       }
@@ -421,7 +414,6 @@ const cancelTicketsByScreeningId = async (screeningId) => {
         { $set: { status: 'free', ticketId: null } }
       );
       
-      console.log(`${seatsToFree.length} asientos marcados como libres tras cancelación masiva`);
     }
 
     // NUEVA FUNCIONALIDAD: Agrupar tickets por cliente para enviar emails

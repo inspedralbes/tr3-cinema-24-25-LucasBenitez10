@@ -22,17 +22,14 @@ export default function InfoMovie({
 
     // Extraer el ID del video de YouTube de la URL
     useEffect(() => {
-        console.log("Trailer URL recibida:", trailerUrl);
         setVideoError(false);
 
         if (!trailerUrl) {
-            console.log("No hay URL de trailer");
             return;
         }
 
         // Si es un ID directo (11 caracteres alfanuméricos)
         if (typeof trailerUrl === 'string' && trailerUrl.length === 11 && /^[a-zA-Z0-9_-]{11}$/.test(trailerUrl)) {
-            console.log("Es un ID directo:", trailerUrl);
             setVideoId(trailerUrl);
             return;
         }
@@ -43,16 +40,10 @@ export default function InfoMovie({
             const match = trailerUrl.match(youtubeLinkRegex);
 
             if (match && match[1]) {
-                console.log("ID extraído:", match[1]);
                 setVideoId(match[1]);
                 return;
             }
         }
-
-        // Si llegamos aquí, no pudimos procesar la URL correctamente
-        console.log("No se pudo extraer un ID de video válido");
-        console.log("Usando ID de ejemplo como fallback");
-        setVideoId("dQw4w9WgXcQ"); // ID de video de ejemplo como fallback
     }, [trailerUrl]);
 
     function handleBuyTickets() {

@@ -35,8 +35,6 @@ export const createScreening = async (screeningData) => {
       }
   
       const data = await response.json();
-      console.log("Screenings: ")
-    //   console.log(data[0].movie)
       return data.data;
     } catch (error) {
       console.error('Error en getScreenings:', error);
@@ -76,10 +74,6 @@ export const createScreening = async (screeningData) => {
         }
       })
 
-      if(!response.ok) {
-        console.log(`Error al cancelar la sesion`)
-      }
-
       return response
 
     }catch(error){
@@ -97,7 +91,6 @@ export const createScreening = async (screeningData) => {
         }
       });
 
-      console.log(response)
   
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -105,7 +98,6 @@ export const createScreening = async (screeningData) => {
         throw new Error(`Failed to delete screening: ${response.status}`);
       }
       
-      console.log('Sesión eliminada correctamente');
       return response;
     } catch (error) {
       console.error('Error en deleteScreening:', error);

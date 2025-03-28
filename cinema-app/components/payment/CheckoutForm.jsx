@@ -31,7 +31,7 @@ const CheckoutForm = () => {
     setBookingStep,
     nextStep,
     stopReservationTimeout,
-    ticketTypes // Obtener los tipos de tickets seleccionados
+    ticketTypes 
   } = useBookingStore();
 
   // Función para generar código de ticket único
@@ -60,7 +60,7 @@ const CheckoutForm = () => {
           });
 
           setTicketTypeData(typeMap);
-          console.log('Datos de tipos de tickets cargados:', typeMap);
+          
         }
       } catch (err) {
         console.error('Error al cargar datos de tipos de tickets:', err);
@@ -70,12 +70,11 @@ const CheckoutForm = () => {
     fetchTicketTypeData();
   }, [movieSelected]);
 
-  // Detener timeout si la página se recarga
+
   useEffect(() => {
-    // Guardar el estado actual antes de recargar
+  
     const handleBeforeUnload = () => {
-      // Si estamos en el proceso de pago pero aún no completado,
-      // mantenemos el timeout. En cualquier otro caso lo detenemos.
+
       if (!succeeded) {
         localStorage.setItem('paymentInProgress', 'true');
       } else {
@@ -86,10 +85,9 @@ const CheckoutForm = () => {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Verificar si venimos de una recarga durante el pago
     const paymentInProgress = localStorage.getItem('paymentInProgress');
     if (!paymentInProgress) {
-      // Si no estamos en proceso de pago, detener el timeout
+   
       stopReservationTimeout();
     }
 
@@ -113,34 +111,27 @@ const CheckoutForm = () => {
           return;
         }
 
-        console.log('Asientos seleccionados para PaymentIntent:', selectedSeats);
+    
 
-        // Preparar los metadatos para Stripe
-        // Aseguramos que el formato de asientos funcione con cualquier estructura
+    
         const seatIds = selectedSeats.map(seat => {
           return typeof seat === 'string' ? seat : (seat.id || seat);
         }).join(',');
 
-        // Usar los tipos de tickets si están disponibles
         let ticketTypeInfo = [];
         if (ticketTypes && ticketTypes.length > 0) {
           ticketTypeInfo = ticketTypes.map(type =>
             `${type.code}:${type.quantity}`
           ).join(',');
         } else {
-          // Fallback al comportamiento anterior
+   
           const seatTypes = selectedSeats.map(seat => {
             return typeof seat === 'object' && seat.type ? seat.type : 'normal';
           }).join(',');
           ticketTypeInfo = seatTypes;
         }
 
-        console.log('Datos a enviar a Stripe:', {
-          seatIds,
-          ticketTypeInfo,
-          totalSeats: selectedSeats.length,
-          totalAmount: totalPrice
-        });
+       
 
         const response = await fetch('http://localhost:4000/api/payments/create-payment-intent', {
           method: 'POST',
@@ -214,11 +205,6 @@ const CheckoutForm = () => {
 
         // Generar tickets después del pago exitoso
         try {
-          console.log('Preparando datos para generar tickets...');
-          console.log('Asientos seleccionados:', selectedSeats);
-          console.log('Tipos de entradas seleccionados:', ticketTypes);
-          console.log('Datos de tipos de tickets disponibles:', ticketTypeData);
-
           // Comprobamos que tenemos toda la información necesaria
           if (!movieSelected || !movieSelected._id) {
             throw new Error('No hay una proyección seleccionada válida');
@@ -302,7 +288,6 @@ const CheckoutForm = () => {
             }
           }
 
-          console.log('Información de asientos preparada:', allSeats);
 
           // Generar un código base para todos los tickets
           const baseTicketCode = generateTicketCode();
@@ -347,7 +332,6 @@ const CheckoutForm = () => {
               ticketData.user = user._id;
             }
 
-            console.log('Enviando datos de ticket:', ticketData);
 
             try {
               const response = await fetch('http://localhost:4000/api/tickets', {
@@ -365,7 +349,6 @@ const CheckoutForm = () => {
               }
 
               const ticketResult = await response.json();
-              console.log('Ticket creado correctamente:', ticketResult);
               tickets.push(ticketResult);
             } catch (ticketError) {
               console.error(`Error al crear ticket para asiento ${seat.row}${seat.number}:`, ticketError);
@@ -374,12 +357,10 @@ const CheckoutForm = () => {
           }
 
           if (tickets.length > 0) {
-            console.log(`Se han creado ${tickets.length} tickets correctamente`);
             setAllTickets(tickets);
 
             // Asegurarnos de guardar un array plano, no anidado
             // Guardar tickets como un array plano sin envolverlo en otro array
-            console.log("Formato de tickets antes de guardar:", tickets);
 
             try {
               localStorage.setItem('lastPurchasedTickets', JSON.stringify(tickets));
@@ -387,9 +368,6 @@ const CheckoutForm = () => {
               // Verificar que se guardó correctamente
               const savedData = localStorage.getItem('lastPurchasedTickets');
               const parsedData = JSON.parse(savedData);
-              console.log("Verificación de formato después de guardar:", parsedData);
-              console.log("¿Es un array?", Array.isArray(parsedData));
-              console.log("Cantidad de tickets guardados:", parsedData.length);
 
               if (Array.isArray(parsedData) && parsedData.length === tickets.length) {
                 console.log("Tickets guardados correctamente en localStorage");

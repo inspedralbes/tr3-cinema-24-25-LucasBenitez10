@@ -8,8 +8,6 @@ function Peliculas() {
     const [screenings, setScreenings] = useState([]);
     const { setBookingStep } = useBookingStore();
 
-    // Variable para almacenar los trailers obtenidos desde TMDB
-    const [trailerCache, setTrailerCache] = useState({});
     const [loading, setLoading] = useState(true);
 
     const getScreeningsData = async () => {
@@ -17,16 +15,6 @@ function Peliculas() {
             setLoading(true);
             const data = await getScreenings();
             setScreenings(data);
-
-            // Análisis de la estructura de datos (solo para desarrollo)
-            if (data && data.length > 0) {
-                console.log("Ejemplo de screening completo:", data[0]);
-                console.log("Ejemplo de datos de película:", data[0].movie);
-                
-                if (data[0].movie) {
-                    console.log("Propiedades disponibles en movie:", Object.keys(data[0].movie));
-                }
-            }
         } catch (error) {
             console.error("Error al obtener screenings:", error);
         } finally {
@@ -38,11 +26,9 @@ function Peliculas() {
         getScreeningsData();
     }, []);
 
-    // Función para formatear la hora
     const formatTime = (timeString) => {
         if (!timeString) return null;
 
-        // Si el formato es HH:MM, simplemente retornarlo
         if (/^\d{1,2}:\d{2}$/.test(timeString)) {
             return timeString;
         }
@@ -60,24 +46,17 @@ function Peliculas() {
         }
     };
 
-    // Función para obtener el trailer de manera segura
     const getTrailerId = (screening) => {
-        // Si existe trailer directamente en la estructura
         if (screening.movie?.trailer?.key) {
             return screening.movie.trailer.key;
         }
         
-        // Si existe trailer pero está en un formato diferente
         if (screening.movie?.trailer && typeof screening.movie.trailer === 'string') {
             return screening.movie.trailer;
         }
 
-        // Verificar si hay TMDB ID para potencial búsqueda futura
         const tmdbId = screening.movie?.tmdbId || screening.movie?.id;
-        if (tmdbId) {
-            console.log("Se podría buscar trailer para TMDB ID:", tmdbId);
-            // Para implementación futura sin llamar a la API ahora
-        }
+      
 
     };
 
@@ -89,7 +68,6 @@ function Peliculas() {
                     <p className="text-gray-400">Descubre nuestra selección de películas</p>
                 </div>
 
-                {/* Divider with film reel design */}
                 <div className="flex items-center w-full max-w-4xl mx-auto mb-12">
                     <div className="flex-grow h-px bg-gray-800"></div>
                     <div className="flex space-x-1 mx-4">
@@ -107,7 +85,6 @@ function Peliculas() {
                 ) : screenings.length > 0 ? (
                     <div className="flex flex-wrap justify-center">
                         {screenings.map((screening) => {
-                            // Obtener ID del trailer de manera segura
                             const trailerId = getTrailerId(screening);
 
                             return (

@@ -21,7 +21,6 @@ export const useRoomStore = create(
                     }
                       
                     const data = await response.json();
-                    console.log("Datos recibidos:", data); 
                     
                     
                     set({ rooms: data.rooms || data });

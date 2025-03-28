@@ -7,7 +7,6 @@ export const authService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       })
-      console.log("respuesta que recibe authService: ", response)
       return response.json()
     },
     

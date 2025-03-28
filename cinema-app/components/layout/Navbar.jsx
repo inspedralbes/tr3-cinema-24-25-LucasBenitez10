@@ -13,10 +13,6 @@ function Navbar() {
     handleLogout();
   };
 
-  useEffect(() => {
-    console.log('Estado del usuario:', user);
-  }, [user]);
-
   return (
     <div className="w-full bg-gray-900 border-b border-gray-800 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

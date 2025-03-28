@@ -32,7 +32,6 @@ export default function CardSession() {
         try {
             // Primero cancelar todas las entradas vendidas
             const ticketResult = await cancelTicketsByScreeningId(id);
-            console.log("Tickets cancelados:", ticketResult);
             
             // Luego cancelar la sesión
             await cancelScreeningById(id);
@@ -57,7 +56,6 @@ export default function CardSession() {
         try {
             // Primero eliminar todas las entradas vendidas
             const ticketResult = await deleteTicketsByScreeningId(id);
-            console.log("Tickets eliminados:", ticketResult);
             
             // Luego eliminar la sesión
             await deleteScreeningById(id);

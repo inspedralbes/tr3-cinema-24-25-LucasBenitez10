@@ -1,6 +1,6 @@
 const https = require('https');
 const Movie = require('../models/Movie');
-const Genre = require('../models/Genre'); // Necesitarás crear este modelo
+const Genre = require('../models/Genre'); 
 
 TMDB_BASE_URL = 'api.themoviedb.org'
 TMDB_API_KEY = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYWY2NjI1OTA0YWJlNDUxOTNiMWJlNjg4YmVhMjZjNSIsIm5iZiI6MTc0MTc4MTM1Ni41MTAwMDAyLCJzdWIiOiI2N2QxNzk2Yzc3NjFhM2E2OGY2MGNkNjgiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.O0jokKFFq1exNyArSPCVl1xulj7wUalvczdMows7emc'
@@ -46,7 +46,6 @@ const makeRequest = (path, params = {}, retryCount = 0) => {
       // Verificar si estamos excediendo el límite de tasa
       if (res.statusCode === 429 && retryCount < 5) {
         const retryAfter = parseInt(res.headers['retry-after'] || '1');
-        console.log(`Rate limit exceeded. Retrying after ${retryAfter} seconds...`);
 
         // Esperar y reintentar
         setTimeout(() => {
@@ -105,7 +104,6 @@ const fetchImageConfiguration = async () => {
 
     if (data.images) {
       imageConfig = data.images;
-      console.log('Configuración de imágenes de TMDB actualizada');
     }
 
     return imageConfig;
@@ -141,7 +139,6 @@ const fetchAllPopularMovies = async (maxPages = 5) => {
       totalPages = data.total_pages;
       page++;
 
-      console.log(`Obtenida página ${page - 1} de ${totalPages} de películas populares`);
     } while (page <= totalPages && page <= maxPages);
 
     return allMovies;
@@ -271,7 +268,7 @@ const syncMoviesToDatabase = async (maxPages = 5) => {
 
         // Obtener trailer
         const trailer = await fetchMovieTrailer(movieData.id);
-        console.log(`Obtenido trailer para película ${movieData.id}:`, trailer);
+
 
         if (existingMovie) {
           // Actualizar película existente

@@ -39,7 +39,6 @@ export default function DropdownMovies() {
 
         try {
             const response = await addScreening(screeningData);
-            console.log(response);
             setSuccess("Sesión creada correctamente");
             setTimeout(() => setSuccess(""), 3000);
         } catch (error) {

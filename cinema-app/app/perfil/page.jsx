@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useUserStore } from '@/store/userStore';
 import Link from 'next/link';
 
-// URL base absoluta del backend
 const API_URL = 'http://localhost:4000';
 
 const PerfilUsuario = () => {
@@ -47,11 +46,9 @@ const PerfilUsuario = () => {
     setError(null);
 
     try {
-      console.log('Intentando obtener tickets para:', user.email);
 
       // URL completa con puerto
       const url = `${API_URL}/api/tickets/customer/${encodeURIComponent(user.email)}`;
-      console.log('URL de la petición:', url);
 
       const response = await fetch(url, {
         credentials: 'include',
@@ -60,14 +57,12 @@ const PerfilUsuario = () => {
         }
       });
 
-      console.log('Respuesta recibida:', response.status);
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Tickets recibidos:', data.length);
       setTickets(data);
     } catch (err) {
       console.error('Error al obtener tickets:', err);

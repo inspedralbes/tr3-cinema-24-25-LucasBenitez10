@@ -62,7 +62,7 @@ const seedRooms = async () => {
     if (count === 0) {
       // Si no hay salas, crear todas las predeterminadas de una vez
       await Room.insertMany(defaultRooms);
-      console.log(`Se crearon ${defaultRooms.length} salas predeterminadas`);
+      
     } else {
       console.log(`Ya existen salas en la base de datos. No se crearon salas predeterminadas.`);
     }

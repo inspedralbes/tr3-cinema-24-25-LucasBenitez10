@@ -19,12 +19,8 @@ router.post('/create-payment-intent', async (req, res) => {
         payment_method_types: ['card'],
       });
       
-      console.log("PaymentIntent creado:", {
-        id: paymentIntent.id,
-        hasClientSecret: !!paymentIntent.client_secret
-      });
-      
-      // Asegúrate de que esto devuelve el objeto esperado
+    
+
       res.json({ 
         clientSecret: paymentIntent.client_secret 
       });
@@ -52,8 +48,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
   // Manejar el evento
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object;
-    // Actualiza tu base de datos, por ejemplo, para marcar un ticket como pagado
-    console.log('PaymentIntent exitoso:', paymentIntent.id);
+   
   }
 
   res.json({received: true});

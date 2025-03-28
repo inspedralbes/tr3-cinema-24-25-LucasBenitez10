@@ -25,23 +25,21 @@ export default function LoginForm({ isInBookingProcess = false }) {
         };
 
         try {
-            // Pasar false como segundo parámetro cuando estamos en el proceso de compra
-            // para evitar la redirección automática
+
             const res = await handleLogin(userData, !isInBookingProcess);
             
             if(res) {
                 setUser(res);
                 
-                // Si estamos en el proceso de compra, avanzar al siguiente paso
+
                 if (isInBookingProcess) {
-                    // Opcional: pequeña pausa para permitir que el estado se actualice
+
                     setTimeout(() => {
                         nextStep();
                     }, 300);
                 }
             }
-            console.log("Contenido de userStore: ", user);
-            console.log('Login result:', res);
+           
         } catch (error) {
             console.error('Login error:', error);
             setError('Credenciales incorrectas o error de conexión');

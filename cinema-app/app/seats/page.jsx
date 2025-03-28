@@ -13,43 +13,41 @@ function Seats() {
   const {
     bookingStep,
     isReservationExpired,
-    resetBooking // Asumiendo que tienes una función para reiniciar la reserva
+    resetBooking 
   } = useBookingStore();
   
   const [showExpirationAlert, setShowExpirationAlert] = useState(false);
   const router = useRouter();
 
-  // Efecto para verificar la expiración de la reserva
+ 
   useEffect(() => {
-    // Verificar inmediatamente al cargar
     if (isReservationExpired()) {
       handleExpiredReservation();
     }
 
-    // Configurar un intervalo para verificar periódicamente
     const checkInterval = setInterval(() => {
       if (isReservationExpired()) {
         handleExpiredReservation();
-        clearInterval(checkInterval); // Limpiar el intervalo una vez que expire
+        clearInterval(checkInterval); 
       }
-    }, 10000); // Verificar cada 10 segundos
+    }, 10000); 
 
-    return () => clearInterval(checkInterval); // Limpiar al desmontar
+    return () => clearInterval(checkInterval); 
   }, []);
 
-  // Función para manejar la reserva expirada
+
   const handleExpiredReservation = () => {
     setShowExpirationAlert(true);
-    // Opcional: reiniciar el estado de la reserva
+    
     resetBooking();
     
-    // Opcional: redirigir después de un tiempo
+    
     setTimeout(() => {
-      router.push('/'); // O a donde prefieras redirigir
+      router.push('/'); 
     }, 5000);
   };
 
-  // Progress marker component for steps
+
   const ProgressMarker = () => {
     const steps = ['seat-selection', 'user-data', 'type-seat', 'payment', 'confirmation'];
     const currentIndex = steps.indexOf(bookingStep);
@@ -74,7 +72,6 @@ function Seats() {
 
   return (
     <div className="bg-black min-h-screen">
-      {/* Alerta de expiración */}
       {showExpirationAlert && (
         <div className="bg-red-600 text-white p-4 font-light text-center">
           <div className="max-w-md mx-auto py-2">
@@ -83,7 +80,7 @@ function Seats() {
         </div>
       )}
 
-      {/* Progress indicators (only show for steps before confirmation) */}
+      
       {bookingStep !== 'confirmation' && <ProgressMarker />}
 
       {bookingStep === 'seat-selection' && <BookingSeats />}

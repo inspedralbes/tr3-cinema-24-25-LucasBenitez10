@@ -7,15 +7,15 @@ export default function AdminNavbar() {
     const { clearUser } = useUserStore();
     
     const handleLogout = () => {
-        clearUser(); // Asumiendo que existe esta función en tu store
-        // Puedes agregar redirección si es necesario
+        clearUser(); 
+       
     };
 
     return (
         <div className="flex justify-around items-center flex-row gap-4 w-full h-20 bg-red-800 text-white">
             <div>
                 <h3 className="font-bold text-xl">Cinema Barcelona</h3>
-                {/* <img src="#" alt="logo cine barcelona"/> */}
+                
             </div>
             <nav>
                 <ul className="flex justify-around items-center flex-row gap-10">

@@ -7,9 +7,7 @@ export const fetchMovies = async () => {
       'Content-Type': 'application/json',
     }
   });
-  console.log("Respuestas des tmdb.js: " + response);
 
-  console.log("peliculas"+response)
   if(response){
     return response.json();
   }else{

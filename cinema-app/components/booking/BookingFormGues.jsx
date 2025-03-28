@@ -21,8 +21,8 @@ export default function BookingFormGues() {
     
     const handleSubmit = (e) => {
         e.preventDefault();
-        setGuestUser(formData); // Esto ahora establece isGuestCheckout a true a través de nuestro store actualizado
-        setGuestCheckout(true); // Explícitamente establecemos para asegurar que está marcado como compra de invitado
+        setGuestUser(formData); 
+        setGuestCheckout(true);
         nextStep();
     };
     

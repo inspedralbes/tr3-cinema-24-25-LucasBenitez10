@@ -22,7 +22,7 @@ export default function BookingSeats() {
     nextStep();
   }
   
-  // Cargar los asientos ocupados desde la API
+
   useEffect(() => {
     const fetchOccupiedSeats = async () => {
       if (movieSelected && movieSelected._id) {
@@ -30,7 +30,7 @@ export default function BookingSeats() {
           setIsLoading(true);
           setError(null);
           
-          console.log(`Obteniendo estado de asientos para proyección: ${movieSelected._id}`);
+          
           
           const response = await fetch(`http://localhost:4000/api/seat-status/${movieSelected._id}`);
           
@@ -41,16 +41,16 @@ export default function BookingSeats() {
           }
           
           const data = await response.json();
-          console.log('Datos de asientos recibidos:', data);
           
-          // Filtrar solo los asientos con status "occupied"
+          
+      
           const occupiedSeatsIds = data
             .filter(seat => seat.status === 'occupied')
             .map(seat => seat.seatId);
           
-          console.log('Asientos ocupados:', occupiedSeatsIds);
           
-          // Actualizar el estado con los asientos ocupados
+          
+       
           setSeatLayout(prevLayout => ({
             ...prevLayout,
             occupiedSeats: occupiedSeatsIds
@@ -67,20 +67,20 @@ export default function BookingSeats() {
     fetchOccupiedSeats();
   }, [movieSelected]);
   
-  // Generar la distribución de asientos basado en availableSeats
+
   useEffect(() => {
     if (movieSelected && movieSelected.availableSeats) {
-      // Determinamos la distribución de asientos según la cantidad total
+      
       const totalSeats = movieSelected.availableSeats;
       generateSeatLayout(totalSeats);
     }
   }, [movieSelected]);
   
-  // Función para generar la distribución de asientos basada en el total
+ 
   const generateSeatLayout = (totalSeats) => {
-    // Si totalSeats es un número, generamos una distribución adaptada
+    
     if (typeof totalSeats === 'number') {
-      // Calculamos un número apropiado de asientos por fila (entre 8-16)
+      
       let seatsPerRow;
       if (totalSeats <= 48) seatsPerRow = 8;
       else if (totalSeats <= 80) seatsPerRow = 10;
@@ -88,10 +88,10 @@ export default function BookingSeats() {
       else if (totalSeats <= 144) seatsPerRow = 14;
       else seatsPerRow = 16;
       
-      // Calculamos el número de filas necesarias
+     
       const numRows = Math.ceil(totalSeats / seatsPerRow);
       
-      // Creamos el conjunto de filas (A, B, C, ...)
+      
       const rowLetters = Array.from({ length: numRows }, (_, i) => 
         String.fromCharCode(65 + i)
       );
@@ -102,7 +102,6 @@ export default function BookingSeats() {
         occupiedSeats: prevLayout.occupiedSeats 
       }));
     } 
-    // Si availableSeats es un objeto con una estructura definida
     else if (typeof totalSeats === 'object' && !Array.isArray(totalSeats)) {
       if (totalSeats.numRows && totalSeats.seatsPerRow) {
         const rowLetters = Array.from({ length: totalSeats.numRows }, (_, i) => 
@@ -118,43 +117,41 @@ export default function BookingSeats() {
         }));
       }
     }
-    // Si availableSeats es un array de asientos disponibles
     else if (Array.isArray(totalSeats)) {
       const seatIds = totalSeats;
       
-      // Extraer todas las filas únicas (primeras letras)
+     
       const rowLetters = [...new Set(seatIds.map(id => id[0]))].sort();
       
-      // Encontrar el número más alto de asiento por fila
+      
       const maxSeatNum = Math.max(...seatIds.map(id => parseInt(id.substring(1))));
       
       setSeatLayout(prevLayout => ({
         rows: rowLetters,
         seatsPerRow: maxSeatNum,
-        occupiedSeats: prevLayout.occupiedSeats // Mantener los asientos ocupados
+        occupiedSeats: prevLayout.occupiedSeats
       }));
     }
-    // Fallback a una configuración por defecto si no podemos interpretar availableSeats
+   
     else {
       console.warn("No se pudo determinar la estructura de asientos desde availableSeats");
       setSeatLayout(prevLayout => ({
         rows: ['A', 'B', 'C', 'D'],
         seatsPerRow: 10,
-        occupiedSeats: prevLayout.occupiedSeats // Mantener los asientos ocupados
+        occupiedSeats: prevLayout.occupiedSeats 
       }));
     }
   };
   
-  // Verificar si un asiento está ocupado
+  
   const isOccupied = (seatId) => {
-    // Primero verificar en la lista de asientos ocupados de SeatStatus
+   
     if (seatLayout.occupiedSeats && seatLayout.occupiedSeats.length > 0) {
       if (seatLayout.occupiedSeats.includes(seatId)) {
         return true;
       }
     }
-    
-    // Si tenemos una estructura específica de asientos disponibles en movieSelected
+   
     if (Array.isArray(movieSelected?.availableSeats)) {
       return !movieSelected.availableSeats.includes(seatId);
     }

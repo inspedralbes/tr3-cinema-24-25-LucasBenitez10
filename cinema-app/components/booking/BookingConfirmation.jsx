@@ -7,16 +7,15 @@ import { useUserStore } from '@/store/userStore';
 import { useRouter } from 'next/navigation';
 
 const SimpleTicketQR = ({ ticketCode }) => {
-  // Existing code unchanged...
+
   const [qrLoaded, setQrLoaded] = useState(false);
   const [qrError, setQrError] = useState(false);
   
-  // Función para generar la URL del código QR usando qrserver.com
+
   const getQrCodeUrl = (code) => {
     return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(code)}`;
   };
-  
-  // Manejar eventos de carga y error
+
   const handleImageLoad = () => {
     setQrLoaded(true);
     setQrError(false);
@@ -85,38 +84,33 @@ const BookingConfirmation = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // Stop reservation timeout
+
     stopReservationTimeout();
     localStorage.removeItem('paymentInProgress');
     
-    // Clear guest data after successful purchase
-    // Only clear if it was a guest checkout, preserve registered user data
+
     if (isGuestCheckout) {
       clearGuestData();
-      console.log("Guest data cleared after successful purchase");
     }
     
     try {
       const savedTickets = localStorage.getItem('lastPurchasedTickets');
-      console.log("Datos brutos de localStorage:", savedTickets);
       
       if (savedTickets) {
         let parsedTickets = JSON.parse(savedTickets);
-        console.log("Tickets parseados inicialmente:", parsedTickets);
         
-        // CORRECCIÓN: Manejar el formato especial [[{ticket1}], [{ticket2}], ...]
+
         if (Array.isArray(parsedTickets)) {
-          // Verificar si tenemos un array de arrays
+
           if (parsedTickets.length > 0 && Array.isArray(parsedTickets[0])) {
-            console.log("Detectada estructura especial de arrays anidados");
             
-            // Nuevo array plano para contener todos los tickets
+
             const flattenedTickets = [];
             
-            // Recorrer cada array interno y extraer los tickets
+
             parsedTickets.forEach(innerArray => {
               if (Array.isArray(innerArray) && innerArray.length > 0) {
-                // Añadir cada ticket del array interno al array plano
+
                 innerArray.forEach(ticket => {
                   flattenedTickets.push(ticket);
                 });
@@ -124,20 +118,11 @@ const BookingConfirmation = () => {
             });
             
             parsedTickets = flattenedTickets;
-            console.log("Estructura aplanada correctamente:", parsedTickets);
           }
-          
-          // Si después del proceso tenemos tickets, guardarlos
+ 
           if (parsedTickets.length > 0) {
             setTickets(parsedTickets);
-            console.log("Total de tickets procesados:", parsedTickets.length);
             
-            // Registrar info detallada del primer ticket para depuración
-            if (parsedTickets[0]) {
-              console.log("Primer ticket:", parsedTickets[0]);
-              console.log("Asientos del primer ticket:", parsedTickets[0]?.seats);
-              console.log("Código QR del primer ticket:", parsedTickets[0]?.ticketCode);
-            }
           } else {
             console.error("No se encontraron tickets válidos después del procesamiento");
           }
@@ -163,8 +148,7 @@ const BookingConfirmation = () => {
     router.push('/');
   };
 
-  // Rest of the component remains unchanged...
-  // Función para cambiar el ticket activo en el carousel
+
   const changeTicket = (direction) => {
     if (direction === 'next') {
       setCurrentTicketIndex((prev) => (prev + 1) % tickets.length);
@@ -185,7 +169,7 @@ const BookingConfirmation = () => {
   return (
     <div className="min-h-screen bg-black text-white py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header with minimalist confirmation */}
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-6">
             <svg

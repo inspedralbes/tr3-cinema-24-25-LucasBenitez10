@@ -21,7 +21,6 @@ const GestorSesionUsuario = () => {
         }
         
         temporizadorInactividad = setTimeout(() => {
-          console.log('Usuario inactivo durante 5 minutos, limpiando datos de invitado');
           clearGuestData();
         }, TIEMPO_INACTIVIDAD);
       };

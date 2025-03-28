@@ -15,7 +15,6 @@ export const useMovieStore = create(
                     set({ isLoading: true, error: null });
                     // Asignar directamente el resultado de la API a movies
                     const movies = await fetchMoviesApi();
-                    console.log(movies)
                     // Usar setMovies para actualizar directamente
                     get().setMovies(movies.movies);
                     set({ isLoading: false });

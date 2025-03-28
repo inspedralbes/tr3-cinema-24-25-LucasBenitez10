@@ -6,7 +6,7 @@ import QRCode from 'react-qr-code';
 import Link from 'next/link';
 import { Calendar, Clock, Map, Users, Tag, Download, Printer, ArrowLeft } from 'lucide-react';
 
-// URL base absoluta del backend
+
 const API_URL = 'http://localhost:4000';
 
 export default function TicketDetail() {

@@ -10,7 +10,6 @@ export default function SessionMovies() {
         fetchScreenings();
     }, []);
 
-    // Calcular estadísticas de las sesiones
     const activeScreenings = screenings?.filter(s => s.status !== 'cancelled')?.length || 0;
     const cancelledScreenings = screenings?.filter(s => s.status === 'cancelled')?.length || 0;
     const totalScreenings = screenings?.length || 0;

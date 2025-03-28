@@ -98,7 +98,6 @@ export const verifyTicket = async (ticketCode) => {
 // Cancelar todas las entradas relacionadas con una sesión específica
 export const cancelTicketsByScreeningId = async (screeningId) => {
   try {
-    console.log(`Cancelando entradas para la sesión: ${screeningId}`);
     const response = await fetch(`${API_URL}/tickets/cancel-by-screening/${screeningId}`, {
       method: 'PUT',
       headers: {
@@ -116,7 +115,6 @@ export const cancelTicketsByScreeningId = async (screeningId) => {
 // Eliminar todas las entradas relacionadas con una sesión específica
 export const deleteTicketsByScreeningId = async (screeningId) => {
   try {
-    console.log(`Eliminando entradas para la sesión: ${screeningId}`);
     const response = await fetch(`${API_URL}/tickets/delete-by-screening/${screeningId}`, {
       method: 'DELETE',
       headers: {
