@@ -1,31 +1,50 @@
 'use client';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUserStore } from '@/store/userStore';
 import useAuth from '@/hooks/auth/useAuth';
 
 function Navbar() {
   const { user, clearUser } = useUserStore();
-  const isUserLoggedIn = user.email && user.email.trim().length > 0;
+  const [mounted, setMounted] = useState(false);
   const { handleLogout } = useAuth();
 
-  const handleClickLogout = () => {
-    handleLogout();
+  // Asegurarnos de que el componente solo renderiza en cliente
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Verificación más robusta del estado de usuario
+  const isUserLoggedIn = mounted && user && user.email && user.email.trim().length > 0;
+
+  const handleClickLogout = async () => {
+    try {
+      await handleLogout();
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
+  // No renderizar nada durante SSR
+  if (!mounted) return null;
+
   return (
-    <div className="w-full bg-gray-900 border-b border-gray-800 text-white shadow-md">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center">
-            <div className="text-red-500 font-medium text-xl">
+            <Link href="/" className="text-red-500 font-medium text-xl hover:text-red-400 transition-colors">
               Cinema Barcelona
-              {/* <img src="#" alt="logo cine barcelona"/> */}
-            </div>
+            </Link>
           </div>
 
           <nav className="flex">
             <ul className="flex items-center space-x-6">
+              <li>
+                <Link href="/" className="text-gray-300 hover:text-white transition-colors duration-200">
+                  Cartelera
+                </Link>
+              </li>
               {!isUserLoggedIn ? (
                 <>
                   <li>
@@ -42,8 +61,8 @@ function Navbar() {
               ) : (
                 <>
                   <li>
-                    <Link 
-                      href="/perfil" 
+                    <Link
+                      href="/perfil"
                       className="text-gray-300 hover:text-white transition-colors duration-200 flex items-center"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -53,8 +72,8 @@ function Navbar() {
                     </Link>
                   </li>
                   <li>
-                    <button 
-                      onClick={handleClickLogout} 
+                    <button
+                      onClick={handleClickLogout}
                       className="px-4 py-2 rounded border border-red-600 text-red-500 hover:bg-red-600 hover:text-white transition-colors duration-200"
                     >
                       Cerrar Sesión
@@ -77,7 +96,7 @@ function Navbar() {
         </div>
         <div className="flex-grow h-px bg-gray-800"></div>
       </div>
-    </div>
+    </header>
   );
 }
 

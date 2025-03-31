@@ -1,7 +1,7 @@
 
 export const createScreening = async (screeningData) => {
     try {
-      const response = await fetch('http://localhost:4000/api/screenings', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/screenings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ export const createScreening = async (screeningData) => {
   
   export const getScreenings = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/screenings', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/screenings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ export const createScreening = async (screeningData) => {
   
   export const getScreeningsWithFilters = async () => {
     try{
-      const response = await fetch('http://localhost:4000/api/screenings/filters', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/screenings/filters`, {
         method: 'GET',
         headers: {
           'Content-Type' : 'application/json'
@@ -67,7 +67,7 @@ export const createScreening = async (screeningData) => {
 
   export const cancelScreening = async (id) => {
     try{
-      const response = await fetch(`http://localhost:4000/api/screenings/cancel/${id}`,{
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/screenings/cancel/${id}`,{
         method: 'PUT',
         headers: {
           'Content-type' : 'application/json',
@@ -84,7 +84,7 @@ export const createScreening = async (screeningData) => {
 
   export const deleteScreening = async (id) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/screenings/delete/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/screenings/delete/${id}`, {
         method: 'DELETE', 
         headers: {
           'Content-Type': 'application/json'

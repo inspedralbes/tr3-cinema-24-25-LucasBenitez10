@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import InfoMovie from './InfoMovie';
 import { useMovieStore } from '@/store/moviesStore';
 import { useBookingStore } from '@/store/bookingStore';
-import { Calendar, Clock, Info, Ticket } from 'lucide-react';
+import { Calendar, Clock, Info, Ticket, Star, Eye } from 'lucide-react';
 
 export default function CardMovie({ 
     movieData, 
@@ -22,9 +22,10 @@ export default function CardMovie({
     const assignMovie = useMovieStore((state) => state.assignMovie);
     const [showInfo, setShowInfo] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const { setBookingStep } = useBookingStore();
 
-    // Formatear fecha para mostrar de manera amigable (ej: "Vie, 29 Mar")
+    // Formatear fecha para mostrar de manera amigable
     const formatDate = (dateString) => {
         if (!dateString) return 'Fecha por confirmar';
 
@@ -49,13 +50,18 @@ export default function CardMovie({
         // Establecemos el paso de reserva en el estado global
         setBookingStep('seat-selection');
         
-        // Redirigimos a la página de selección de asientos, igual que en InfoMovie
+        // Redirigimos a la página de selección de asientos
         router.push('/seats');
     }
 
     function handleCloseInfo() {
         setShowInfo(false);
     }
+
+    // Manejar carga de imagen
+    const handleImageLoad = () => {
+        setIsLoading(false);
+    };
 
     // Calcular año de estreno
     const releaseYear = relase ? new Date(relase).getFullYear() : 'N/A';
@@ -66,94 +72,130 @@ export default function CardMovie({
     // Fecha formateada para mostrar
     const formattedDate = formatDate(date);
 
-    // URL base para imágenes (con verificación de seguridad)
+    // URL base para imágenes
     const imageBaseUrl = process.env.NEXT_PUBLIC_URL_IMAGE || 'https://image.tmdb.org/t/p/w500';
 
     return (
-        <div className="w-64 m-3">
+        <div className="w-64 sm:w-72 md:w-80 m-3 transform transition-all duration-300 hover:-translate-y-1">
             <div 
-                className={`relative rounded-md overflow-hidden bg-gray-900 border border-gray-800 shadow-md transition-all duration-300 ${isHovered ? 'shadow-lg shadow-gray-900/50' : ''} ${isCancelled ? 'ring-1 ring-red-800' : ''}`}
+                className={`relative overflow-hidden bg-gray-900 rounded-xl shadow-xl transition-all duration-300 
+                    ${isHovered ? 'shadow-2xl shadow-red-900/20 scale-[1.02]' : 'shadow-lg shadow-black/40'} 
+                    ${isCancelled ? 'ring-1 ring-red-800' : ''}`}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
+                style={{
+                    backfaceVisibility: 'hidden'
+                }}
             >
-                {/* Contenedor de la imagen */}
+                {/* Contenedor de la imagen con skeleton loader */}
                 <div 
                     className="relative aspect-[2/3] overflow-hidden cursor-pointer"
                     onClick={!isCancelled ? handleViewInfo : undefined}
                 >
+                    {/* Skeleton loader */}
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-gradient-to-b from-gray-800 to-gray-900 animate-pulse" />
+                    )}
+                    
+                    {/* Imagen de poster */}
                     <img 
                         src={`${imageBaseUrl}${image}`} 
                         alt={`Póster de ${title}`}
-                        className={`w-full h-full object-cover transition-all duration-500 ${isHovered ? 'scale-105' : 'scale-100'} ${isCancelled ? 'filter grayscale brightness-75' : ''}`}
+                        onLoad={handleImageLoad}
+                        className={`w-full h-full object-cover transition-all duration-500 
+                            ${isHovered ? 'scale-110 filter brightness-110' : 'scale-100'} 
+                            ${isCancelled ? 'filter grayscale brightness-50' : ''}`}
                     />
 
-                    {/* Overlay sutil */}
+                    {/* Overlay gradiente mejorado */}
                     <div 
-                        className={`absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70`}
+                        className={`absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent 
+                            opacity-80 transition-opacity duration-300 ${isHovered ? 'opacity-70' : 'opacity-80'}`}
                     ></div>
 
-                    {/* Botón "Ver información" superpuesto */}
+                    {/* Botón de info superpuesto con efecto más suave */}
                     {!isCancelled && (
                         <button
                             onClick={handleViewInfo}
                             className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                                       bg-black/60 hover:bg-red-600 text-white rounded-full p-3
-                                       transition-all duration-300 flex items-center justify-center
-                                       ${isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                                     bg-red-600/90 hover:bg-red-500 text-white rounded-full p-4
+                                     transition-all duration-500 flex items-center justify-center
+                                     ${isHovered ? 'opacity-100 scale-100 shadow-lg shadow-red-600/50' : 'opacity-0 scale-75'}`}
                             aria-label="Ver información"
                         >
-                            <Info size={24} />
+                            <Eye size={24} />
                         </button>
                     )}
 
-                    {/* Badges minimalistas */}
-                    <div className="absolute top-2 left-2 flex flex-col gap-2">
-                        <span className={`text-xs font-medium px-2 py-1 rounded-sm backdrop-blur-sm ${isCancelled ? 'bg-gray-800/70 text-gray-300' : 'bg-black/70 text-white'}`}>
-                            {lenguage && lenguage.toUpperCase()}
-                        </span>
-                        <span className={`text-xs font-medium px-2 py-1 rounded-sm backdrop-blur-sm ${isCancelled ? 'bg-gray-800/70 text-gray-300' : 'bg-black/70 text-white'}`}>
+                    {/* Badges con mejor diseño */}
+                    <div className="absolute top-3 left-3 right-3 flex justify-between">
+                        <div className="flex flex-col gap-2">
+                            {lenguage && (
+                                <span className={`text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm 
+                                    ${isCancelled 
+                                        ? 'bg-gray-800/70 text-gray-300' 
+                                        : 'bg-black/70 text-white border border-gray-700'}`}
+                                >
+                                    {lenguage.toUpperCase()}
+                                </span>
+                            )}
+                        </div>
+                        
+                        <span className={`text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm flex items-center
+                            ${isCancelled 
+                                ? 'bg-gray-800/70 text-gray-300' 
+                                : 'bg-red-600/80 text-white'}`}
+                        >
+                            <Star size={12} className="mr-1" />
                             {releaseYear}
                         </span>
                     </div>
 
-                    {/* CARTEL DE FUNCIÓN CANCELADA - Versión minimalista */}
+                    {/* Título flotante en la parte inferior de la imagen */}
+                    <div className="absolute bottom-0 inset-x-0 p-4 pt-10 bg-gradient-to-t from-black to-transparent">
+                        <h2 className="font-medium text-white text-lg mb-1 line-clamp-2">{title}</h2>
+                    </div>
+
+                    {/* CARTEL DE FUNCIÓN CANCELADA - Versión mejorada */}
                     {isCancelled && (
-                        <div className="absolute bottom-0 inset-x-0 bg-red-600 py-1 flex justify-center items-center">
-                            <p className="text-white text-xs font-medium tracking-wide">FUNCIÓN CANCELADA</p>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="bg-red-600/90 px-4 py-2 rotate-45 transform origin-center w-[150%] text-center shadow-lg">
+                                <p className="text-white font-bold tracking-wider text-base">FUNCIÓN CANCELADA</p>
+                            </div>
                         </div>
                     )}
                 </div>
 
                 {/* Información de la película */}
-                <div className="p-3 bg-gray-900">
-                    <h2 className="font-medium text-white text-base mb-1 truncate">{title}</h2>
-                    <p className="text-gray-400 text-xs line-clamp-2 mb-3 h-8">{review}</p>
+                <div className="p-4 bg-gradient-to-b from-gray-900 to-gray-800 backdrop-filter backdrop-blur-sm">
+                    {/* Descripción con altura fija */}
+                    <p className="text-gray-300 text-sm line-clamp-2 mb-4 h-10">{review}</p>
 
-                    {/* Información de horario y fecha */}
-                    <div className="mb-3 space-y-1">
+                    {/* Información de horario y fecha con íconos mejorados */}
+                    <div className="mb-4 space-y-2">
                         <div className="flex items-center text-gray-300 text-xs">
-                            <Calendar size={12} className="mr-1.5 text-red-500" />
-                            <span>{formattedDate}</span>
+                            <Calendar size={14} className="mr-2 text-red-500" />
+                            <span className="uppercase tracking-wide">{formattedDate}</span>
                         </div>
                         {time && (
                             <div className="flex items-center text-gray-300 text-xs">
-                                <Clock size={12} className="mr-1.5 text-red-500" />
-                                <span>{time}</span>
+                                <Clock size={14} className="mr-2 text-red-500" />
+                                <span className="uppercase tracking-wide">{time}h</span>
                             </div>
                         )}
                     </div>
 
-                    {/* Botones de acción */}
+                    {/* Botones de acción con efectos mejorados */}
                     <div className="grid grid-cols-2 gap-2">
                         {/* Botón Ver información */}
                         <button 
                             onClick={handleViewInfo}
                             disabled={isCancelled}
-                            className={`py-2 text-sm font-medium rounded-sm transition-colors flex items-center justify-center ${
-                                isCancelled 
-                                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
-                                    : 'bg-gray-700 text-white hover:bg-gray-600'
-                            }`}
+                            className={`py-2.5 text-sm font-medium rounded transition-all flex items-center justify-center
+                                ${isCancelled 
+                                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-60' 
+                                    : 'bg-gray-800 text-white hover:bg-gray-700 shadow-md hover:shadow active:shadow-inner'
+                                }`}
                         >
                             <Info size={14} className="mr-1.5" />
                             <span>Ver info</span>
@@ -163,14 +205,14 @@ export default function CardMovie({
                         <button 
                             onClick={handleBuyTickets}
                             disabled={isCancelled}
-                            className={`py-2 text-sm font-medium rounded-sm transition-colors flex items-center justify-center ${
-                                isCancelled 
-                                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
-                                    : 'bg-red-600 text-white hover:bg-red-700'
-                            }`}
+                            className={`py-2.5 text-sm font-medium rounded transition-all flex items-center justify-center
+                                ${isCancelled 
+                                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-60' 
+                                    : 'bg-red-600 text-white hover:bg-red-500 shadow-md hover:shadow-red-600/30 active:shadow-inner'
+                                }`}
                         >
                             <Ticket size={14} className="mr-1.5" />
-                            <span>Comprar entradas</span>
+                            <span>Comprar</span>
                         </button>
                     </div>
                 </div>

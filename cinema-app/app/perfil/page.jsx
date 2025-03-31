@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUserStore } from '@/store/userStore';
 import Link from 'next/link';
 
-const API_URL = 'http://localhost:4000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const PerfilUsuario = () => {
   const { user, setUser } = useUserStore();
@@ -465,12 +465,6 @@ const PerfilUsuario = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           {ticket.status === 'active' && (
                             <>
-                              <Link
-                                href={`/tickets/${ticket._id}`}
-                                className="text-red-600 hover:text-red-900 mr-4"
-                              >
-                                Ver Ticket
-                              </Link>
                               <button
                                 onClick={() => cancelTicket(ticket._id)}
                                 className="text-gray-600 hover:text-gray-900"

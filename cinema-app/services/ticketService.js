@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:4000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Handler genérico para las respuestas
 const handleResponse = async (response) => {
@@ -12,7 +12,7 @@ const handleResponse = async (response) => {
 // Obtener tickets por cliente (email)
 export const getTicketsByCustomer = async (email) => {
   try {
-    const response = await fetch(`${API_URL}/tickets/customer/${email}`, {
+    const response = await fetch(`${API_URL}/api/tickets/customer/${email}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -29,7 +29,7 @@ export const getTicketsByCustomer = async (email) => {
 // Obtener tickets por sesión
 export const getTicketsByScreening = async (screeningId) => {
   try {
-    const response = await fetch(`${API_URL}/tickets/screening/${screeningId}`, {
+    const response = await fetch(`${API_URL}/api/tickets/screening/${screeningId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -46,7 +46,7 @@ export const getTicketsByScreening = async (screeningId) => {
 // Comprar tickets
 export const purchaseTickets = async (ticketData) => {
   try {
-    const response = await fetch(`${API_URL}/tickets`, {
+    const response = await fetch(`${API_URL}/api/tickets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -64,7 +64,7 @@ export const purchaseTickets = async (ticketData) => {
 // Cancelar un ticket específico
 export const cancelTicket = async (ticketId) => {
   try {
-    const response = await fetch(`${API_URL}/tickets/${ticketId}/cancel`, {
+    const response = await fetch(`${API_URL}/api/tickets/${ticketId}/cancel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -81,7 +81,7 @@ export const cancelTicket = async (ticketId) => {
 // Verificar un ticket por su código
 export const verifyTicket = async (ticketCode) => {
   try {
-    const response = await fetch(`${API_URL}/tickets/verify/${ticketCode}`, {
+    const response = await fetch(`${API_URL}/api/tickets/verify/${ticketCode}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -98,7 +98,7 @@ export const verifyTicket = async (ticketCode) => {
 // Cancelar todas las entradas relacionadas con una sesión específica
 export const cancelTicketsByScreeningId = async (screeningId) => {
   try {
-    const response = await fetch(`${API_URL}/tickets/cancel-by-screening/${screeningId}`, {
+    const response = await fetch(`${API_URL}/api/tickets/cancel-by-screening/${screeningId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -115,7 +115,7 @@ export const cancelTicketsByScreeningId = async (screeningId) => {
 // Eliminar todas las entradas relacionadas con una sesión específica
 export const deleteTicketsByScreeningId = async (screeningId) => {
   try {
-    const response = await fetch(`${API_URL}/tickets/delete-by-screening/${screeningId}`, {
+    const response = await fetch(`${API_URL}/api/tickets/delete-by-screening/${screeningId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'

@@ -38,8 +38,8 @@ export default function BookingSeatType() {
                 setLoading(true);
                 // Si hay una película seleccionada, obtenemos precios específicos
                 const endpoint = movieSelected && movieSelected._id 
-                    ? `http://localhost:4000/api/ticket-types/movie/${movieSelected._id}`
-                    : 'http://localhost:4000/api/ticket-types';
+                    ? `${process.env.NEXT_PUBLIC_API_URL}/api/ticket-types/movie/${movieSelected._id}`
+                    : `${process.env.NEXT_PUBLIC_API_URL}/api/ticket-types`;
                 
                 const response = await fetch(endpoint);
                 

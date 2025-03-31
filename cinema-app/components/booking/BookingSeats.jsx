@@ -30,9 +30,7 @@ export default function BookingSeats() {
           setIsLoading(true);
           setError(null);
           
-          
-          
-          const response = await fetch(`http://localhost:4000/api/seat-status/${movieSelected._id}`);
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/seat-status/${movieSelected._id}`);
           
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));

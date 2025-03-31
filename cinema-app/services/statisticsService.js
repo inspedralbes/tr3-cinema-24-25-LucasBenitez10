@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:4000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Helper function to get last week's sales (can be replaced with actual backend logic)
 const getLastWeekSales = () => {
@@ -17,7 +17,7 @@ const getLastWeekSales = () => {
 export const getGeneralStatistics = async () => {
   try {
     // Obtener todas las sesiones
-    const screeningsResponse = await fetch(`${API_URL}/screenings`, {
+    const screeningsResponse = await fetch(`${API_URL}/api/screenings`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -50,7 +50,7 @@ export const getGeneralStatistics = async () => {
     for (const screening of recentScreenings) {
       try {
         // Usar la ruta de tickets por sesión
-        const ticketsResponse = await fetch(`${API_URL}/tickets/screening/${screening._id}`, {
+        const ticketsResponse = await fetch(`${API_URL}/api/tickets/screening/${screening._id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
@@ -120,7 +120,7 @@ export const getGeneralStatistics = async () => {
 export const getScreeningStatistics = async (screeningId) => {
   try {
     // Obtener detalles de la sesión
-    const screeningResponse = await fetch(`${API_URL}/screenings/filters?screeningId=${screeningId}`, {
+    const screeningResponse = await fetch(`${API_URL}/api/screenings/filters?screeningId=${screeningId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -142,7 +142,7 @@ export const getScreeningStatistics = async (screeningId) => {
     let screening = screeningData.data.find(s => s._id === screeningId) || screeningData.data[0];
     
     // Obtener tickets para esta sesión
-    const ticketsResponse = await fetch(`${API_URL}/tickets/screening/${screeningId}`, {
+    const ticketsResponse = await fetch(`${API_URL}/api/tickets/screening/${screeningId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'

@@ -47,7 +47,7 @@ const CheckoutForm = () => {
       try {
         if (movieSelected && movieSelected._id) {
           // Obtener tipos de tickets específicos para esta película
-          const response = await fetch(`http://localhost:4000/api/ticket-types/movie/${movieSelected._id}`);
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ticket-types/movie/${movieSelected._id}`);
           if (!response.ok) {
             throw new Error('Error al cargar tipos de tickets');
           }
@@ -133,7 +133,7 @@ const CheckoutForm = () => {
 
        
 
-        const response = await fetch('http://localhost:4000/api/payments/create-payment-intent', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/create-payment-intent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -334,7 +334,7 @@ const CheckoutForm = () => {
 
 
             try {
-              const response = await fetch('http://localhost:4000/api/tickets', {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tickets`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -387,7 +387,7 @@ const CheckoutForm = () => {
               }).filter(Boolean);
 
               if (seatIds.length > 0) {
-                const updateResponse = await fetch('http://localhost:4000/api/seat-status/mark-occupied', {
+                const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/seat-status/mark-occupied`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
