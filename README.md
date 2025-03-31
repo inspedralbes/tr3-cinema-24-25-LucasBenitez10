@@ -62,7 +62,6 @@ tr3-transversal-2/
 3. Crear archivo `.env` basado en `.env.example`:
    ```
    MONGODB_URI=mongodb+srv://...
-   JWT_SECRET=your_jwt_secret
    SESSION_SECRET=your_session_secret
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_...
@@ -223,7 +222,8 @@ La aplicación está configurada para ser desplegada con Docker. Se ha soluciona
 ### Backend
 - Node.js y Express.js
 - MongoDB y Mongoose
-- JWT para autenticación
+- Express-session para autenticación basada en sesiones
+- Connect-mongo para almacenamiento de sesiones
 - Stripe para procesamiento de pagos
 - TMDB API para información de películas
 
