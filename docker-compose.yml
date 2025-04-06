@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Servicio de MongoDB para desarrollo local
+  mongodb:
+    image: mongo:6
+    container_name: cinema-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=cinema
+      - MONGO_INITDB_ROOT_PASSWORD=cinema123
+    networks:
+      - cinema-network
+    restart: unless-stopped
+
+  # Servicio de Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cinema-backend
+    ports:
+      - "4321:4321"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - MONGODB_URI=mongodb://cinema:cinema123@mongodb:27017/cinema?authSource=admin
+      - SESSION_SECRET=cinema_session_secret_dev
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+      - TMDB_API_KEY=${TMDB_API_KEY:-tmdb_api_key_placeholder}
+      - CORS_ORIGIN=http://localhost:3000
+      - PORT=4321
+      - NODE_ENV=development
+    depends_on:
+      - mongodb
+    networks:
+      - cinema-network
+    restart: unless-stopped
+
+  # Servicio de Frontend
+  frontend:
+    build:
+      context: ./cinema-app
+      dockerfile: Dockerfile
+    container_name: cinema-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./cinema-app:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4321/api
+      - NEXT_PUBLIC_URL_IMAGE=https://image.tmdb.org/t/p/w500/
+      - NEXT_PUBLIC_PATH_IMAGE=https://image.tmdb.org/t/p/w500/
+      - NEXT_PUBLIC_STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY:-pk_test_placeholder}
+      - TAILWIND_MODE=watch
+    depends_on:
+      - backend
+    networks:
+      - cinema-network
+    restart: unless-stopped
+
+networks:
+  cinema-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
